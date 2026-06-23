@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Domus",
+    "slug": "domus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "domus",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tdforge.domus"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0d1a0f"
+      },
+      "package": "com.tdforge.domus"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-splash-screen",
+      "expo-status-bar",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
