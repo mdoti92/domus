@@ -15,7 +15,7 @@ Cuando el usuario diga "leé el backlog y arrancá a trabajar", seguir este fluj
    - Si retorna null → informar al usuario que no hay items en To Do y frenar
    - Si retorna un item → continuar
 
-2. PATCH .../nogrod-api/items/:id?api_key=... con {"status": "in_progress"}
+2. PATCH https://rkschpopukxdjsdpmqgi.supabase.co/functions/v1/nogrod-api/items/:id?api_key=cf5aaf2e6178b403039942407046646d con {"status": "in_progress"}
 
 3. Crear branch desde develop: feature/DOM-X-nombre-corto o fix/DOM-X-nombre-corto
 
@@ -25,7 +25,7 @@ Cuando el usuario diga "leé el backlog y arrancá a trabajar", seguir este fluj
 
 6. Tests en verde → merge a develop sin esperar confirmación
 
-7. PATCH .../nogrod-api/items/:id?api_key=... con {"status": "in_review"}
+7. PATCH https://rkschpopukxdjsdpmqgi.supabase.co/functions/v1/nogrod-api/items/:id?api_key=cf5aaf2e6178b403039942407046646d con {"status": "in_review"}
 
 8. Volver al paso 1
 
@@ -88,46 +88,49 @@ Contrasta con Nogrod que es forja enana/industrial.
 
 ## Modelo de datos — Core
 
-### Todo es un Evento
-Domus tiene un core genérico de eventos extensible. Cada módulo es una implementación.
+### Todo gira alrededor del Asset
+El usuario interactúa siempre desde el asset, no desde un módulo.
+La categoría es solo un atributo del asset para agrupar y filtrar.
 
-```
-Evento (base)
-├── id
-├── module_type      → 'maintenance' | 'obra' | 'medical' | 'calendar' | ...
-├── title
-├── description
-├── date
-├── status           → 'pending' | 'done' | 'cancelled'
-├── created_by
-├── created_at
-└── updated_at
+Asset
+- id
+- name              → "Piscina", "Martín", "Obra del baño"
+- category          → "Mantenimiento", "Médico", "Obra" (solo para agrupar)
+- icon              → emoji o nombre de icono (nullable)
+- parameter_definitions → jsonb: [{name, type: text|number|boolean, unit?}]
+- created_at, updated_at
 
-EventoMantenimiento (extiende Evento)
-├── asset_id         → qué se mantiene (piscina, lavarropas, etc.)
-└── parameters       → [{name, value, type: 'text'|'number'|'boolean'}]
+Event
+- id
+- asset_id          → FK a assets
+- date
+- notes
+- status            → pending | done | cancelled
+- created_at, updated_at
 
-EventoObra (extiende Evento)
-├── obra_id
-├── contractor
-└── notes
+EventParameterValue
+- id
+- event_id          → FK a events
+- parameter_name    → nombre del parámetro (ej: "ph", "cloro")
+- parameter_value   → valor como texto
+- parameter_type    → text | number | boolean
 
-Asset (lo que se mantiene)
-├── id
-├── name             → "Piscina", "Lavarropas"
-├── category
-└── parameter_definitions → [{name, type, unit?}] (configurable por el usuario)
-```
+### Flujo de uso
+1. Usuario crea un Asset (ej: "Piscina") con su categoría e icono
+2. Configura los parámetros del asset (ej: ph, cloro, aspirado)
+3. Registra eventos con los valores de esos parámetros
+4. Ve el historial de eventos del asset
 
-## Módulos MVP
-1. **Mantenimiento del hogar** — registrar eventos de mantenimiento con parámetros
-   configurables por asset. Ejemplo piscina: ph, cloro, aspirado (sí/no), observaciones.
-2. **Obras** — registrar visitas de obreros, avance diario, notas.
+## Categorías previstas
+- Mantenimiento (piscina, lavarropas, caldera, auto, etc.)
+- Médico (personas de la familia)
+- Obra (proyectos de construcción o refacción)
+- Extensible a futuro sin cambiar el schema
 
 ## Módulos futuros
-- Médico (turnos, historiales, posible integración con APIs)
-- Calendario familiar (eventos, cumpleaños, actos escolares)
-- Notificaciones inteligentes
+- Notificaciones inteligentes (ej: "hace 30 días que no registrás el ph")
+- Integración con APIs médicas
+- Calendario familiar
 
 ## Reglas de desarrollo
 
