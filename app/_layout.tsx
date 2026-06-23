@@ -8,7 +8,6 @@ import {
 } from '@expo-google-fonts/cormorant-garamond';
 import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
-import { Colors } from '../constants/colors';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,16 +31,9 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: Colors.surface },
-        headerTintColor: Colors.gold,
-        contentStyle: { backgroundColor: Colors.bg },
-        headerTitleStyle: {
-          fontFamily: 'CormorantGaramond_600SemiBold',
-          fontSize: 22,
-        },
-      }}
-    />
+    <Stack>
+      {/* Los tabs manejan su propio header */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
   );
 }
