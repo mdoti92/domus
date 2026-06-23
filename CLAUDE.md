@@ -15,7 +15,7 @@ Cuando el usuario diga "leé el backlog y arrancá a trabajar", seguir este fluj
    - Si retorna null → informar al usuario que no hay items en To Do y frenar
    - Si retorna un item → continuar
 
-2. PATCH .../nogrod-api/items/:id/status?api_key=... con {"status": "in_progress"}
+2. PATCH .../nogrod-api/items/:id?api_key=... con {"status": "in_progress"}
 
 3. Crear branch desde develop: feature/DOM-X-nombre-corto o fix/DOM-X-nombre-corto
 
@@ -25,7 +25,7 @@ Cuando el usuario diga "leé el backlog y arrancá a trabajar", seguir este fluj
 
 6. Tests en verde → merge a develop sin esperar confirmación
 
-7. PATCH /status → {"status": "in_review"}
+7. PATCH .../nogrod-api/items/:id?api_key=... con {"status": "in_review"}
 
 8. Volver al paso 1
 
