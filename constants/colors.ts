@@ -10,3 +10,5 @@ export const Colors = {
   silverMuted: '#4a5a46',
   white: '#f0f4ee',
 } as const;
+
+export type ColorToken = keyof typeof Colors;
