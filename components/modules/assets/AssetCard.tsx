@@ -1,14 +1,27 @@
 import { Pressable, View, StyleSheet, Text } from 'react-native';
 import { Colors } from '../../../constants/colors';
-import { Asset } from '../../../types';
+import { AssetWithLastEvent } from '../../../types';
+import { formatRelativeDate } from '../../../lib/formatRelativeDate';
 
 interface AssetCardProps {
-  asset: Asset;
+  asset: AssetWithLastEvent;
   onPress: () => void;
 }
 
+const MAX_NOTES_LENGTH = 50;
+
 export function AssetCard({ asset, onPress }: AssetCardProps) {
-  const paramCount = asset.parameter_definitions.length;
+  const { lastEvent } = asset;
+
+  const lastEventLabel = lastEvent
+    ? formatRelativeDate(lastEvent.date)
+    : 'Sin registros';
+
+  const notesSummary = lastEvent?.notes
+    ? lastEvent.notes.length > MAX_NOTES_LENGTH
+      ? lastEvent.notes.slice(0, MAX_NOTES_LENGTH) + '…'
+      : lastEvent.notes
+    : null;
 
   return (
     <Pressable
@@ -24,10 +37,11 @@ export function AssetCard({ asset, onPress }: AssetCardProps) {
       )}
       <View style={styles.content}>
         <Text style={styles.name}>{asset.name}</Text>
-        {paramCount > 0 && (
-          <Text style={styles.params}>
-            {paramCount} parámetro{paramCount !== 1 ? 's' : ''}
-          </Text>
+        <Text style={[styles.lastEvent, !lastEvent && styles.noRecord]}>
+          {lastEventLabel}
+        </Text>
+        {notesSummary && (
+          <Text style={styles.notes} numberOfLines={1}>{notesSummary}</Text>
         )}
       </View>
       <Text style={styles.chevron}>›</Text>
@@ -78,9 +92,18 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: Colors.silver,
   },
-  params: {
+  lastEvent: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
+    color: Colors.silverDim,
+  },
+  noRecord: {
+    color: Colors.silverMuted,
+    fontStyle: 'italic',
+  },
+  notes: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
     color: Colors.silverMuted,
   },
   chevron: {
