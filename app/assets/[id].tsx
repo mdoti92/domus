@@ -9,26 +9,35 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { useAssetDetail } from '../../hooks/useAssetDetail';
 import { useCreateEvent } from '../../hooks/useCreateEvent';
+import { useUpdateAsset } from '../../hooks/useUpdateAsset';
 import { AssetDetailHeader } from '../../components/modules/assets/AssetDetailHeader';
 import { EventCard } from '../../components/modules/assets/EventCard';
 import { EventsEmptyState } from '../../components/modules/assets/EventsEmptyState';
 import { NewEventModal } from '../../components/modules/assets/NewEventModal';
+import { EditAssetModal } from '../../components/modules/assets/EditAssetModal';
 import { CreateEventInput } from '../../hooks/useCreateEvent';
+import { UpdateAssetInput } from '../../hooks/useUpdateAsset';
 
 export default function AssetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { asset, events, loading, error, refetch } = useAssetDetail(id);
   const { createEvent } = useCreateEvent();
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const handleNewEventPress = () => setModalVisible(true);
+  const { updateAsset } = useUpdateAsset();
+  const [newEventVisible, setNewEventVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
 
   const handleSubmitEvent = async (input: CreateEventInput) => {
     await createEvent(id, input);
+    await refetch();
+  };
+
+  const handleSubmitEdit = async (input: UpdateAssetInput) => {
+    await updateAsset(id, input);
     await refetch();
   };
 
@@ -58,14 +67,26 @@ export default function AssetDetailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <AssetDetailHeader asset={asset} />
+        <View style={styles.headerRow}>
+          <View style={styles.headerContent}>
+            <AssetDetailHeader asset={asset} />
+          </View>
+          <Pressable
+            onPress={() => setEditVisible(true)}
+            style={styles.editButton}
+            accessibilityRole="button"
+            accessibilityLabel="Editar asset"
+          >
+            <Ionicons name="pencil-outline" size={20} color={Colors.goldDim} />
+          </Pressable>
+        </View>
 
         <View style={styles.divider} />
 
         <View style={styles.eventsSection}>
           <Text style={styles.sectionLabel}>Historial de eventos</Text>
           {events.length === 0 ? (
-            <EventsEmptyState onRegisterPress={handleNewEventPress} />
+            <EventsEmptyState onRegisterPress={() => setNewEventVisible(true)} />
           ) : (
             <View style={styles.eventsList}>
               {events.map((event) => (
@@ -79,7 +100,7 @@ export default function AssetDetailScreen() {
       {events.length > 0 && (
         <Pressable
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-          onPress={handleNewEventPress}
+          onPress={() => setNewEventVisible(true)}
           accessibilityRole="button"
           accessibilityLabel="Registrar nuevo evento"
         >
@@ -88,11 +109,18 @@ export default function AssetDetailScreen() {
       )}
 
       <NewEventModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        visible={newEventVisible}
+        onClose={() => setNewEventVisible(false)}
         onSubmit={handleSubmitEvent}
         parameterDefinitions={asset.parameter_definitions}
         assetName={asset.name}
+      />
+
+      <EditAssetModal
+        visible={editVisible}
+        asset={asset}
+        onClose={() => setEditVisible(false)}
+        onSubmit={handleSubmitEdit}
       />
     </SafeAreaView>
   );
@@ -124,13 +152,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.gold,
   },
-  scroll: {
-    flex: 1,
-  },
+  scroll: { flex: 1 },
   scrollContent: {
     padding: 20,
     paddingBottom: 100,
     gap: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  editButton: {
+    padding: 8,
+    marginTop: 4,
   },
   divider: {
     height: 1,
