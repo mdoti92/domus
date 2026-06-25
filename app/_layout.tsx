@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { Colors } from '../constants/colors';
 import { useFonts } from 'expo-font';
 import {
   CormorantGaramond_400Regular,
@@ -32,8 +33,19 @@ export default function RootLayout() {
 
   return (
     <Stack>
-      {/* Los tabs manejan su propio header */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="assets/[id]"
+        options={{
+          title: 'Asset',
+          headerStyle: { backgroundColor: Colors.surface },
+          headerTintColor: Colors.gold,
+          headerTitleStyle: {
+            fontFamily: 'CormorantGaramond_600SemiBold',
+            fontSize: 22,
+          },
+        }}
+      />
     </Stack>
   );
 }
