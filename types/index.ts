@@ -40,3 +40,12 @@ export interface EventParameterValue {
 export interface EventWithValues extends HomeEvent {
   event_parameter_values: EventParameterValue[];
 }
+
+export interface LastEventSummary {
+  date: string;
+  notes: string | null;
+}
+
+export interface AssetWithLastEvent extends Asset {
+  lastEvent: LastEventSummary | null;
+}

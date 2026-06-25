@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
-import { useAssets } from '../../hooks/useAssets';
+import { useAssetsWithLastEvent } from '../../hooks/useAssetsWithLastEvent';
 import { groupAssetsByCategory } from '../../lib/groupAssetsByCategory';
 import { AssetCard } from '../../components/modules/assets/AssetCard';
 import { EmptyState } from '../../components/modules/assets/EmptyState';
@@ -18,7 +18,7 @@ import { CreateAssetModal } from '../../components/modules/assets/CreateAssetMod
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { assets, loading, error, createAsset } = useAssets();
+  const { assets, loading, error, createAsset } = useAssetsWithLastEvent();
   const [modalVisible, setModalVisible] = useState(false);
 
   const grouped = groupAssetsByCategory(assets);
