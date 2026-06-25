@@ -43,9 +43,10 @@ interface EditAssetModalProps {
   asset: Asset;
   onClose: () => void;
   onSubmit: (input: UpdateAssetInput) => Promise<void>;
+  onDelete: () => void;
 }
 
-export function EditAssetModal({ visible, asset, onClose, onSubmit }: EditAssetModalProps) {
+export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: EditAssetModalProps) {
   const [name, setName] = useState(asset.name);
   const [category, setCategory] = useState(asset.category);
   const [icon, setIcon] = useState<string | null>(asset.icon);
@@ -79,6 +80,17 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit }: EditAssetM
 
   const updateParameterType = (index: number, type: ParameterType) => {
     setParameters((prev) => prev.map((p, i) => (i === index ? { ...p, type } : p)));
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Eliminar asset',
+      `¿Eliminar "${asset.name}"? Se eliminarán también todos sus eventos e historial. Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: onDelete },
+      ]
+    );
   };
 
   const confirmRemoveParameter = (index: number) => {
@@ -234,7 +246,12 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit }: EditAssetM
               {submitting ? (
                 <ActivityIndicator color={Colors.gold} />
               ) : (
-                <Button label="Guardar cambios" onPress={handleSubmit} disabled={!canSubmit} />
+                <>
+                  <Button label="Guardar cambios" onPress={handleSubmit} disabled={!canSubmit} />
+                  <Pressable onPress={confirmDelete} style={styles.deleteButton}>
+                    <Text style={styles.deleteText}>Eliminar asset</Text>
+                  </Pressable>
+                </>
               )}
             </View>
           </View>
@@ -353,5 +370,15 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    gap: 10,
+  },
+  deleteButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  deleteText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: '#c87a60',
   },
 });
