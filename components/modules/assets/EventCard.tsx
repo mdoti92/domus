@@ -1,9 +1,10 @@
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, Pressable } from 'react-native';
 import { Colors } from '../../../constants/colors';
 import { EventWithValues, EventStatus } from '../../../types';
 
 interface EventCardProps {
   event: EventWithValues;
+  onPress?: () => void;
 }
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -19,11 +20,15 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string }> = {
   cancelled: { label: 'Cancelado', color: Colors.silverMuted },
 };
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, onPress }: EventCardProps) {
   const statusConfig = STATUS_CONFIG[event.status];
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && onPress && styles.cardPressed]}
+      onPress={onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+    >
       <View style={styles.header}>
         <Text style={styles.date}>{formatDate(event.date)}</Text>
         <Text style={[styles.status, { color: statusConfig.color }]}>
@@ -50,7 +55,7 @@ export function EventCard({ event }: EventCardProps) {
       {event.notes && (
         <Text style={styles.notes}>{event.notes}</Text>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -67,6 +72,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 2,
+  },
+  cardPressed: {
+    opacity: 0.75,
   },
   header: {
     flexDirection: 'row',
