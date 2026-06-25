@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { Colors } from '../constants/colors';
 import { useFonts } from 'expo-font';
 import {
@@ -9,6 +9,7 @@ import {
 } from '@expo-google-fonts/cormorant-garamond';
 import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
+import { useAuth } from '../hooks/useAuth';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,23 +22,41 @@ export default function RootLayout() {
     Inter_500Medium,
   });
 
+  const { session, loading: authLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
+  useEffect(() => {
+    if (authLoading) return;
+    if (!fontsLoaded && !fontError) return;
+
+    const onLoginScreen = segments[0] === 'login';
+
+    if (!session && !onLoginScreen) {
+      router.replace('/login');
+    } else if (session && onLoginScreen) {
+      router.replace('/(tabs)');
+    }
+  }, [session, authLoading, fontsLoaded, fontError, segments]);
+
+  if ((!fontsLoaded && !fontError) || authLoading) {
     return null;
   }
 
   return (
     <Stack>
+      <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="assets/[id]"
         options={{
-          title: 'Asset',
+          title: 'Detalle',
           headerStyle: { backgroundColor: Colors.surface },
           headerTintColor: Colors.gold,
           headerTitleStyle: {
