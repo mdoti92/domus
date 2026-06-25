@@ -42,5 +42,5 @@ export function useAssetDetail(assetId: string) {
     fetchDetail();
   }, [fetchDetail]);
 
-  return { asset, events, loading, error };
+  return { asset, events, loading, error, refetch: fetchDetail };
 }

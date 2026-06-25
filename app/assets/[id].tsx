@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   View,
   ScrollView,
@@ -6,22 +7,29 @@ import {
   Pressable,
   ActivityIndicator,
   SafeAreaView,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { useAssetDetail } from '../../hooks/useAssetDetail';
+import { useCreateEvent } from '../../hooks/useCreateEvent';
 import { AssetDetailHeader } from '../../components/modules/assets/AssetDetailHeader';
 import { EventCard } from '../../components/modules/assets/EventCard';
 import { EventsEmptyState } from '../../components/modules/assets/EventsEmptyState';
+import { NewEventModal } from '../../components/modules/assets/NewEventModal';
+import { CreateEventInput } from '../../hooks/useCreateEvent';
 
 export default function AssetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { asset, events, loading, error } = useAssetDetail(id);
+  const { asset, events, loading, error, refetch } = useAssetDetail(id);
+  const { createEvent } = useCreateEvent();
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const handleNewEvent = () => {
-    Alert.alert('Próximamente', 'El registro de eventos estará disponible en la próxima versión.');
+  const handleNewEventPress = () => setModalVisible(true);
+
+  const handleSubmitEvent = async (input: CreateEventInput) => {
+    await createEvent(id, input);
+    await refetch();
   };
 
   if (loading) {
@@ -57,7 +65,7 @@ export default function AssetDetailScreen() {
         <View style={styles.eventsSection}>
           <Text style={styles.sectionLabel}>Historial de eventos</Text>
           {events.length === 0 ? (
-            <EventsEmptyState onRegisterPress={handleNewEvent} />
+            <EventsEmptyState onRegisterPress={handleNewEventPress} />
           ) : (
             <View style={styles.eventsList}>
               {events.map((event) => (
@@ -71,13 +79,21 @@ export default function AssetDetailScreen() {
       {events.length > 0 && (
         <Pressable
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-          onPress={handleNewEvent}
+          onPress={handleNewEventPress}
           accessibilityRole="button"
           accessibilityLabel="Registrar nuevo evento"
         >
           <Text style={styles.fabIcon}>+</Text>
         </Pressable>
       )}
+
+      <NewEventModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSubmit={handleSubmitEvent}
+        parameterDefinitions={asset.parameter_definitions}
+        assetName={asset.name}
+      />
     </SafeAreaView>
   );
 }
