@@ -102,7 +102,11 @@ export default function AssetDetailScreen() {
           ) : (
             <View style={styles.eventsList}>
               {events.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onPress={() => router.push(`/assets/events/${event.id}?assetId=${id}`)}
+                />
               ))}
             </View>
           )}
