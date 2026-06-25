@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import { Colors } from '../../constants/colors';
 import { useAssetDetail } from '../../hooks/useAssetDetail';
 import { useCreateEvent } from '../../hooks/useCreateEvent';
 import { useUpdateAsset } from '../../hooks/useUpdateAsset';
+import { useDeleteAsset } from '../../hooks/useDeleteAsset';
 import { AssetDetailHeader } from '../../components/modules/assets/AssetDetailHeader';
 import { EventCard } from '../../components/modules/assets/EventCard';
 import { EventsEmptyState } from '../../components/modules/assets/EventsEmptyState';
@@ -28,6 +30,7 @@ export default function AssetDetailScreen() {
   const { asset, events, loading, error, refetch } = useAssetDetail(id);
   const { createEvent } = useCreateEvent();
   const { updateAsset } = useUpdateAsset();
+  const { deleteAsset } = useDeleteAsset();
   const [newEventVisible, setNewEventVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
 
@@ -39,6 +42,15 @@ export default function AssetDetailScreen() {
   const handleSubmitEdit = async (input: UpdateAssetInput) => {
     await updateAsset(id, input);
     await refetch();
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteAsset(id);
+      router.replace('/(tabs)');
+    } catch {
+      Alert.alert('Error', 'No se pudo eliminar el asset. Intentá de nuevo.');
+    }
   };
 
   if (loading) {
@@ -121,6 +133,7 @@ export default function AssetDetailScreen() {
         asset={asset}
         onClose={() => setEditVisible(false)}
         onSubmit={handleSubmitEdit}
+        onDelete={handleDelete}
       />
     </SafeAreaView>
   );
