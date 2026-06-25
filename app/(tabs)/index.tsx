@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -7,22 +7,37 @@ import {
   Pressable,
   ActivityIndicator,
   SafeAreaView,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { useAssetsWithLastEvent } from '../../hooks/useAssetsWithLastEvent';
 import { groupAssetsByCategory } from '../../lib/groupAssetsByCategory';
+import { getUniqueCategories } from '../../lib/getUniqueCategories';
 import { AssetCard } from '../../components/modules/assets/AssetCard';
 import { EmptyState } from '../../components/modules/assets/EmptyState';
 import { CreateAssetModal } from '../../components/modules/assets/CreateAssetModal';
+
+const ALL_FILTER = 'Todos';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { assets, loading, error, createAsset } = useAssetsWithLastEvent();
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>(ALL_FILTER);
 
-  const grouped = groupAssetsByCategory(assets);
-  const categories = Object.keys(grouped);
+  const categories = useMemo(() => getUniqueCategories(assets), [assets]);
+
+  const filteredAssets = useMemo(() => {
+    if (selectedCategory === ALL_FILTER) return assets;
+    return assets.filter((a) => a.category === selectedCategory);
+  }, [assets, selectedCategory]);
+
+  const grouped = useMemo(() => groupAssetsByCategory(filteredAssets), [filteredAssets]);
+  const groupKeys = Object.keys(grouped);
+
+  const showFilter = categories.length > 1;
+  const filterOptions = [ALL_FILTER, ...categories];
 
   if (loading) {
     return (
@@ -45,26 +60,58 @@ export default function HomeScreen() {
       {assets.length === 0 ? (
         <EmptyState onCreatePress={() => setModalVisible(true)} />
       ) : (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {categories.map((category) => (
-            <View key={category} style={styles.categorySection}>
-              <Text style={styles.categoryLabel}>{category}</Text>
-              <View style={styles.assetList}>
-                {grouped[category].map((asset) => (
-                  <AssetCard
-                    key={asset.id}
-                    asset={asset}
-                    onPress={() => router.push(`/assets/${asset.id}`)}
-                  />
-                ))}
-              </View>
+        <>
+          {showFilter && (
+            <View style={styles.filterBar}>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={filterOptions}
+                keyExtractor={(item) => item}
+                contentContainerStyle={styles.filterContent}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={[
+                      styles.filterChip,
+                      selectedCategory === item && styles.filterChipActive,
+                    ]}
+                    onPress={() => setSelectedCategory(item)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedCategory === item && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {item}
+                    </Text>
+                  </Pressable>
+                )}
+              />
             </View>
-          ))}
-        </ScrollView>
+          )}
+
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {groupKeys.map((category) => (
+              <View key={category} style={styles.categorySection}>
+                <Text style={styles.categoryLabel}>{category}</Text>
+                <View style={styles.assetList}>
+                  {grouped[category].map((asset) => (
+                    <AssetCard
+                      key={asset.id}
+                      asset={asset}
+                      onPress={() => router.push(`/assets/${asset.id}`)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </>
       )}
 
       {assets.length > 0 && (
@@ -102,6 +149,36 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
     color: Colors.silverDim,
+  },
+  filterBar: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  filterContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  filterChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface2,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.gold,
+    borderColor: Colors.gold,
+  },
+  filterChipText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: Colors.silverDim,
+  },
+  filterChipTextActive: {
+    color: Colors.bg,
+    fontFamily: 'Inter_500Medium',
   },
   scroll: {
     flex: 1,
