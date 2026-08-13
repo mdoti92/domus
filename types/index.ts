@@ -36,3 +36,16 @@ export interface EventParameterValue {
   parameter_type: ParameterType;
   created_at: string;
 }
+
+export interface EventWithValues extends HomeEvent {
+  event_parameter_values: EventParameterValue[];
+}
+
+export interface LastEventSummary {
+  date: string;
+  notes: string | null;
+}
+
+export interface AssetWithLastEvent extends Asset {
+  lastEvent: LastEventSummary | null;
+}
