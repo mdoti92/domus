@@ -11,19 +11,27 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Alert,
 } from 'react-native';
 import { Colors } from '../../../constants/colors';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
-import { ParameterDefinition } from '../../../types';
+import { HouseholdMember, ParameterDefinition } from '../../../types';
 import { CreateEventInput } from '../../../hooks/useCreateEvent';
+import { NotificationConfigSection } from './NotificationConfigSection';
+import {
+  NotificationFormState,
+  createDefaultNotificationFormState,
+  validateNotificationFormState,
+} from '../../../lib/notificationFormState';
 
 interface NewEventModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (input: CreateEventInput) => Promise<void>;
+  onSubmit: (input: CreateEventInput, notification: NotificationFormState) => Promise<void>;
   parameterDefinitions: ParameterDefinition[];
   assetName: string;
+  householdMembers: HouseholdMember[];
 }
 
 function todayISO(): string {
@@ -36,10 +44,12 @@ export function NewEventModal({
   onSubmit,
   parameterDefinitions,
   assetName,
+  householdMembers,
 }: NewEventModalProps) {
   const [date, setDate] = useState(todayISO);
   const [notes, setNotes] = useState('');
   const [paramValues, setParamValues] = useState<Record<string, string | boolean>>({});
+  const [notification, setNotification] = useState<NotificationFormState>(createDefaultNotificationFormState);
   const [dateError, setDateError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,6 +57,7 @@ export function NewEventModal({
     setDate(todayISO());
     setNotes('');
     setParamValues({});
+    setNotification(createDefaultNotificationFormState());
     setDateError(undefined);
     setSubmitting(false);
   };
@@ -70,6 +81,13 @@ export function NewEventModal({
       return;
     }
     setDateError(undefined);
+
+    const notificationError = validateNotificationFormState(notification);
+    if (notificationError) {
+      Alert.alert('Notificación incompleta', notificationError);
+      return;
+    }
+
     setSubmitting(true);
 
     const parameterValues = parameterDefinitions
@@ -85,11 +103,14 @@ export function NewEventModal({
       }));
 
     try {
-      await onSubmit({
-        date: date.trim(),
-        notes: notes.trim() || null,
-        parameterValues,
-      });
+      await onSubmit(
+        {
+          date: date.trim(),
+          notes: notes.trim() || null,
+          parameterValues,
+        },
+        notification
+      );
       reset();
       onClose();
     } finally {
@@ -179,6 +200,12 @@ export function NewEventModal({
                   textAlignVertical="top"
                 />
               </View>
+
+              <NotificationConfigSection
+                value={notification}
+                onChange={setNotification}
+                householdMembers={householdMembers}
+              />
             </ScrollView>
 
             <View style={styles.footer}>

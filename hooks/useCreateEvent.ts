@@ -18,7 +18,7 @@ export function useCreateEvent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
-  const createEvent = useCallback(async (assetId: string, input: CreateEventInput): Promise<void> => {
+  const createEvent = useCallback(async (assetId: string, input: CreateEventInput): Promise<{ id: string }> => {
     setLoading(true);
     setError(null);
 
@@ -31,9 +31,11 @@ export function useCreateEvent() {
 
       if (eventError) throw eventError;
 
+      const createdEvent = event as { id: string };
+
       if (input.parameterValues.length > 0) {
         const values = input.parameterValues.map((pv) => ({
-          event_id: (event as { id: string }).id,
+          event_id: createdEvent.id,
           parameter_name: pv.name,
           parameter_value: String(pv.value),
           parameter_type: pv.type,
@@ -45,6 +47,8 @@ export function useCreateEvent() {
 
         if (valError) throw valError;
       }
+
+      return createdEvent;
     } catch (err) {
       setError(err);
       throw err;

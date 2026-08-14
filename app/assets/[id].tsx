@@ -16,6 +16,8 @@ import { useAssetDetail } from '../../hooks/useAssetDetail';
 import { useCreateEvent } from '../../hooks/useCreateEvent';
 import { useUpdateAsset } from '../../hooks/useUpdateAsset';
 import { useDeleteAsset } from '../../hooks/useDeleteAsset';
+import { useHouseholdMembers } from '../../hooks/useHouseholdMembers';
+import { useSaveEventNotificationConfig } from '../../hooks/useSaveEventNotificationConfig';
 import { AssetDetailHeader } from '../../components/modules/assets/AssetDetailHeader';
 import { EventCard } from '../../components/modules/assets/EventCard';
 import { EventsEmptyState } from '../../components/modules/assets/EventsEmptyState';
@@ -23,6 +25,7 @@ import { NewEventModal } from '../../components/modules/assets/NewEventModal';
 import { EditAssetModal } from '../../components/modules/assets/EditAssetModal';
 import { CreateEventInput } from '../../hooks/useCreateEvent';
 import { UpdateAssetInput } from '../../hooks/useUpdateAsset';
+import { NotificationFormState, toSaveEventNotificationConfigInput } from '../../lib/notificationFormState';
 
 export default function AssetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,11 +34,16 @@ export default function AssetDetailScreen() {
   const { createEvent } = useCreateEvent();
   const { updateAsset } = useUpdateAsset();
   const { deleteAsset } = useDeleteAsset();
+  const { members: householdMembers } = useHouseholdMembers();
+  const { saveConfig } = useSaveEventNotificationConfig();
   const [newEventVisible, setNewEventVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
 
-  const handleSubmitEvent = async (input: CreateEventInput) => {
-    await createEvent(id, input);
+  const handleSubmitEvent = async (input: CreateEventInput, notification: NotificationFormState) => {
+    const createdEvent = await createEvent(id, input);
+    if (notification.enabled) {
+      await saveConfig(createdEvent.id, toSaveEventNotificationConfigInput(notification));
+    }
     await refetch();
   };
 
@@ -130,6 +138,7 @@ export default function AssetDetailScreen() {
         onSubmit={handleSubmitEvent}
         parameterDefinitions={asset.parameter_definitions}
         assetName={asset.name}
+        householdMembers={householdMembers}
       />
 
       <EditAssetModal
