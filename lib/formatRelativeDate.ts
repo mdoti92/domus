@@ -1,10 +1,13 @@
-export function formatRelativeDate(dateStr: string, now?: Date): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  const today = now ? new Date(now) : new Date();
-  today.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
+function toUTCCalendarDay(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
 
-  const diffDays = Math.round((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+export function formatRelativeDate(dateStr: string, now?: Date): string {
+  const parsedDate = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00Z');
+  const date = toUTCCalendarDay(parsedDate);
+  const today = toUTCCalendarDay(now ?? new Date());
+
+  const diffDays = Math.round((today - date) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return 'hoy';
   if (diffDays === 1) return 'ayer';
