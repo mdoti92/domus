@@ -1,0 +1,21 @@
+export interface CalendarDay {
+  date: Date;
+  inCurrentMonth: boolean;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEKS_IN_GRID = 6;
+const DAYS_IN_WEEK = 7;
+
+export function getCalendarMonthGrid(year: number, month: number): CalendarDay[] {
+  const firstOfMonth = new Date(Date.UTC(year, month, 1));
+  const mondayOffset = (firstOfMonth.getUTCDay() + 6) % 7;
+  const gridStart = new Date(Date.UTC(year, month, 1 - mondayOffset));
+
+  const days: CalendarDay[] = [];
+  for (let i = 0; i < WEEKS_IN_GRID * DAYS_IN_WEEK; i++) {
+    const date = new Date(gridStart.getTime() + i * DAY_MS);
+    days.push({ date, inCurrentMonth: date.getUTCMonth() === month });
+  }
+  return days;
+}
