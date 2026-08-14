@@ -33,4 +33,10 @@ describe('formatRelativeDate', () => {
   it('returns "hace X años" for 2+ years', () => {
     expect(formatRelativeDate('2024-06-25', makeNow('2026-06-25'))).toBe('hace 2 años');
   });
+
+  it('handles a full timestamp with UTC offset, not just a plain date', () => {
+    expect(formatRelativeDate('2026-06-25T00:00:00+00:00', makeNow('2026-06-25'))).toBe('hoy');
+    expect(formatRelativeDate('2026-06-24T00:00:00+00:00', makeNow('2026-06-25'))).toBe('ayer');
+    expect(formatRelativeDate('2026-06-22T15:30:00+00:00', makeNow('2026-06-25'))).toBe('hace 3 días');
+  });
 });
