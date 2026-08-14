@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
-import { getCalendarMonthGrid } from '../../lib/calendarGrid';
+import { getCalendarMonthGrid, chunkIntoWeeks } from '../../lib/calendarGrid';
 
 interface CalendarProps {
   value: string | null;
@@ -50,7 +50,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
     }
   };
 
-  const days = getCalendarMonthGrid(viewedYear, viewedMonth);
+  const weeks = chunkIntoWeeks(getCalendarMonthGrid(viewedYear, viewedMonth));
   const selectedISO = value ? toISODate(parseViewedDate(value)) : null;
   const todayISO = toISODate(new Date());
 
@@ -75,30 +75,34 @@ export function Calendar({ value, onSelect }: CalendarProps) {
       </View>
 
       <View style={styles.grid}>
-        {days.map(({ date, inCurrentMonth }) => {
-          const iso = toISODate(date);
-          const isSelected = iso === selectedISO;
-          const isToday = iso === todayISO;
-          return (
-            <Pressable
-              key={iso}
-              onPress={() => onSelect(iso)}
-              style={[styles.dayCell, isSelected && styles.dayCellSelected]}
-              accessibilityLabel={iso}
-            >
-              <Text
-                style={[
-                  styles.dayText,
-                  !inCurrentMonth && styles.dayTextOutside,
-                  isSelected && styles.dayTextSelected,
-                  isToday && !isSelected && styles.dayTextToday,
-                ]}
-              >
-                {date.getUTCDate()}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {weeks.map((week, weekIndex) => (
+          <View key={weekIndex} style={styles.week}>
+            {week.map(({ date, inCurrentMonth }) => {
+              const iso = toISODate(date);
+              const isSelected = iso === selectedISO;
+              const isToday = iso === todayISO;
+              return (
+                <Pressable
+                  key={iso}
+                  onPress={() => onSelect(iso)}
+                  style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                  accessibilityLabel={iso}
+                >
+                  <Text
+                    style={[
+                      styles.dayText,
+                      !inCurrentMonth && styles.dayTextOutside,
+                      isSelected && styles.dayTextSelected,
+                      isToday && !isSelected && styles.dayTextToday,
+                    ]}
+                  >
+                    {date.getUTCDate()}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -151,8 +155,11 @@ const styles = StyleSheet.create({
     color: Colors.silverMuted,
   },
   grid: {
+    flexDirection: 'column',
+  },
+  week: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   dayCell: {
     width: CELL_SIZE,

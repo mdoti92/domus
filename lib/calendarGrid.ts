@@ -19,3 +19,11 @@ export function getCalendarMonthGrid(year: number, month: number): CalendarDay[]
   }
   return days;
 }
+
+export function chunkIntoWeeks(days: CalendarDay[]): CalendarDay[][] {
+  const weeks: CalendarDay[][] = [];
+  for (let i = 0; i < days.length; i += DAYS_IN_WEEK) {
+    weeks.push(days.slice(i, i + DAYS_IN_WEEK));
+  }
+  return weeks;
+}
