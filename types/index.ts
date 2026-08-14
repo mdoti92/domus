@@ -49,3 +49,42 @@ export interface LastEventSummary {
 export interface AssetWithLastEvent extends Asset {
   lastEvent: LastEventSummary | null;
 }
+
+export type RecurrenceType = 'date' | 'interval';
+
+export type NotificationTimeUnit = 'hour' | 'day' | 'week' | 'month' | 'year';
+
+export interface HouseholdMember {
+  id: string;
+  user_id: string;
+  display_name: string;
+  created_at: string;
+}
+
+export interface EventNotificationConfig {
+  id: string;
+  event_id: string;
+  enabled: boolean;
+  recurrence_type: RecurrenceType | null;
+  recurrence_date: string | null;
+  recurrence_interval_value: number | null;
+  recurrence_interval_unit: NotificationTimeUnit | null;
+  notify_all_household: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventNotificationReminder {
+  id: string;
+  config_id: string;
+  offset_value: number;
+  offset_unit: NotificationTimeUnit;
+  created_at: string;
+}
+
+export interface EventNotificationRecipient {
+  id: string;
+  config_id: string;
+  household_member_id: string;
+  created_at: string;
+}
