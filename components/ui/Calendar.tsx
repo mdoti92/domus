@@ -1,0 +1,184 @@
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Colors } from '../../constants/colors';
+import { getCalendarMonthGrid } from '../../lib/calendarGrid';
+
+interface CalendarProps {
+  value: string | null;
+  onSelect: (isoDate: string) => void;
+}
+
+const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+const WEEKDAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+function toISODate(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+function parseViewedDate(value: string | null): Date {
+  if (value) {
+    const parsed = new Date(value.includes('T') ? value : `${value}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}
+
+export function Calendar({ value, onSelect }: CalendarProps) {
+  const initial = parseViewedDate(value);
+  const [viewedYear, setViewedYear] = useState(initial.getUTCFullYear());
+  const [viewedMonth, setViewedMonth] = useState(initial.getUTCMonth());
+
+  const goToPreviousMonth = () => {
+    if (viewedMonth === 0) {
+      setViewedYear((y) => y - 1);
+      setViewedMonth(11);
+    } else {
+      setViewedMonth((m) => m - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (viewedMonth === 11) {
+      setViewedYear((y) => y + 1);
+      setViewedMonth(0);
+    } else {
+      setViewedMonth((m) => m + 1);
+    }
+  };
+
+  const days = getCalendarMonthGrid(viewedYear, viewedMonth);
+  const selectedISO = value ? toISODate(parseViewedDate(value)) : null;
+  const todayISO = toISODate(new Date());
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Pressable onPress={goToPreviousMonth} style={styles.navButton} accessibilityLabel="Mes anterior">
+          <Text style={styles.navText}>‹</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>
+          {MONTH_NAMES[viewedMonth]} {viewedYear}
+        </Text>
+        <Pressable onPress={goToNextMonth} style={styles.navButton} accessibilityLabel="Mes siguiente">
+          <Text style={styles.navText}>›</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.weekdayRow}>
+        {WEEKDAY_LABELS.map((label, i) => (
+          <Text key={i} style={styles.weekdayLabel}>{label}</Text>
+        ))}
+      </View>
+
+      <View style={styles.grid}>
+        {days.map(({ date, inCurrentMonth }) => {
+          const iso = toISODate(date);
+          const isSelected = iso === selectedISO;
+          const isToday = iso === todayISO;
+          return (
+            <Pressable
+              key={iso}
+              onPress={() => onSelect(iso)}
+              style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+              accessibilityLabel={iso}
+            >
+              <Text
+                style={[
+                  styles.dayText,
+                  !inCurrentMonth && styles.dayTextOutside,
+                  isSelected && styles.dayTextSelected,
+                  isToday && !isSelected && styles.dayTextToday,
+                ]}
+              >
+                {date.getUTCDate()}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const CELL_SIZE = 36;
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 16,
+    gap: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    fontFamily: 'CormorantGaramond_600SemiBold',
+    fontSize: 20,
+    color: Colors.gold,
+    textTransform: 'capitalize',
+  },
+  navButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: Colors.surface2,
+  },
+  navText: {
+    fontSize: 18,
+    color: Colors.gold,
+    lineHeight: 20,
+  },
+  weekdayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weekdayLabel: {
+    width: CELL_SIZE,
+    textAlign: 'center',
+    fontFamily: 'Inter_500Medium',
+    fontSize: 11,
+    color: Colors.silverMuted,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  dayCell: {
+    width: CELL_SIZE,
+    height: CELL_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: CELL_SIZE / 2,
+    marginBottom: 4,
+  },
+  dayCellSelected: {
+    backgroundColor: Colors.gold,
+  },
+  dayText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: Colors.silver,
+  },
+  dayTextOutside: {
+    color: Colors.silverMuted,
+  },
+  dayTextSelected: {
+    color: Colors.bg,
+    fontFamily: 'Inter_500Medium',
+  },
+  dayTextToday: {
+    color: Colors.gold,
+    fontFamily: 'Inter_500Medium',
+  },
+});

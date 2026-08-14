@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { View, Text, Pressable, Switch, TextInput, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
 import { HouseholdMember, NotificationTimeUnit, RecurrenceType } from '../../../types';
 import { NotificationFormState } from '../../../lib/notificationFormState';
+import { DatePickerField } from '../../ui/DatePickerField';
 
 interface NotificationConfigSectionProps {
   value: NotificationFormState;
@@ -25,6 +27,22 @@ const TIME_UNIT_OPTIONS: { value: NotificationTimeUnit; label: string }[] = [
 
 function unitLabel(unit: NotificationTimeUnit): string {
   return TIME_UNIT_OPTIONS.find((o) => o.value === unit)?.label ?? unit;
+}
+
+function UnitPicker({ value, onChange }: { value: NotificationTimeUnit; onChange: (unit: NotificationTimeUnit) => void }) {
+  return (
+    <View style={styles.pillRow}>
+      {TIME_UNIT_OPTIONS.map((opt) => (
+        <Pressable
+          key={opt.value}
+          style={[styles.pill, value === opt.value && styles.pillActive]}
+          onPress={() => onChange(opt.value)}
+        >
+          <Text style={[styles.pillText, value === opt.value && styles.pillTextActive]}>{opt.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
 }
 
 export function NotificationConfigSection({ value, onChange, householdMembers }: NotificationConfigSectionProps) {
@@ -65,73 +83,67 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
     : [];
 
   return (
-    <View style={styles.section}>
-      <View style={styles.switchRow}>
-        <Text style={styles.sectionLabel}>Notificarme</Text>
-        <Switch
-          value={value.enabled}
-          onValueChange={(enabled) => patch({ enabled })}
-          trackColor={{ false: Colors.border, true: Colors.goldDim }}
-          thumbColor={value.enabled ? Colors.gold : Colors.silverMuted}
-        />
+    <View style={styles.stack}>
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <Text style={styles.cardTitle}>Notificarme</Text>
+          <Switch
+            value={value.enabled}
+            onValueChange={(enabled) => patch({ enabled })}
+            trackColor={{ false: Colors.border, true: Colors.goldDim }}
+            thumbColor={value.enabled ? Colors.gold : Colors.silverMuted}
+          />
+        </View>
       </View>
 
       {value.enabled && (
-        <View style={styles.body}>
-          <View style={styles.pillRow}>
-            {RECURRENCE_TYPE_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.value}
-                style={[styles.pill, value.recurrenceType === opt.value && styles.pillActive]}
-                onPress={() => patch({ recurrenceType: opt.value })}
-              >
-                <Text style={[styles.pillText, value.recurrenceType === opt.value && styles.pillTextActive]}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
+        <>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Recurrencia</Text>
+            <View style={styles.pillRow}>
+              {RECURRENCE_TYPE_OPTIONS.map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  style={[styles.pill, value.recurrenceType === opt.value && styles.pillActive]}
+                  onPress={() => patch({ recurrenceType: opt.value })}
+                >
+                  <Text style={[styles.pillText, value.recurrenceType === opt.value && styles.pillTextActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {value.recurrenceType === 'date' ? (
+              <DatePickerField
+                value={value.recurrenceDate || null}
+                onChange={(recurrenceDate) => patch({ recurrenceDate })}
+                placeholder="Elegir la próxima ocurrencia"
+              />
+            ) : (
+              <View style={styles.unifiedRow}>
+                <Ionicons name="repeat-outline" size={18} color={Colors.gold} />
+                <Text style={styles.unifiedRowLabel}>cada</Text>
+                <TextInput
+                  style={styles.intervalInput}
+                  value={value.intervalValue}
+                  onChangeText={(intervalValue) => patch({ intervalValue })}
+                  keyboardType="number-pad"
+                  placeholder="1"
+                  placeholderTextColor={Colors.silverMuted}
+                />
+                <UnitPicker value={value.intervalUnit} onChange={(intervalUnit) => patch({ intervalUnit })} />
+              </View>
+            )}
           </View>
 
-          {value.recurrenceType === 'date' ? (
-            <TextInput
-              style={styles.textInput}
-              value={value.recurrenceDate}
-              onChangeText={(recurrenceDate) => patch({ recurrenceDate })}
-              placeholder="AAAA-MM-DD"
-              placeholderTextColor={Colors.silverMuted}
-            />
-          ) : (
-            <View style={styles.intervalRow}>
-              <TextInput
-                style={styles.intervalInput}
-                value={value.intervalValue}
-                onChangeText={(intervalValue) => patch({ intervalValue })}
-                keyboardType="number-pad"
-                placeholder="1"
-                placeholderTextColor={Colors.silverMuted}
-              />
-              <View style={styles.pillRow}>
-                {TIME_UNIT_OPTIONS.map((opt) => (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.pill, value.intervalUnit === opt.value && styles.pillActive]}
-                    onPress={() => patch({ intervalUnit: opt.value })}
-                  >
-                    <Text style={[styles.pillText, value.intervalUnit === opt.value && styles.pillTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <View style={styles.subsection}>
-            <Text style={styles.subsectionLabel}>Recordatorios</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Recordatorios</Text>
 
             {value.reminders.map((reminder, index) => (
-              <View key={`${reminder.offset_unit}-${reminder.offset_value}-${index}`} style={styles.chipRow}>
-                <Text style={styles.chipText}>
+              <View key={`${reminder.offset_unit}-${reminder.offset_value}-${index}`} style={styles.reminderRow}>
+                <Ionicons name="alarm-outline" size={16} color={Colors.silverDim} />
+                <Text style={styles.reminderText}>
                   {reminder.offset_value} {unitLabel(reminder.offset_unit)} antes
                 </Text>
                 <Pressable onPress={() => removeReminder(index)} accessibilityLabel="Quitar recordatorio">
@@ -140,7 +152,8 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
               </View>
             ))}
 
-            <View style={styles.intervalRow}>
+            <View style={styles.unifiedRow}>
+              <Ionicons name="add-circle-outline" size={18} color={Colors.silverDim} />
               <TextInput
                 style={styles.intervalInput}
                 value={reminderValue}
@@ -149,28 +162,16 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
                 placeholder="1"
                 placeholderTextColor={Colors.silverMuted}
               />
-              <View style={styles.pillRow}>
-                {TIME_UNIT_OPTIONS.map((opt) => (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.pill, reminderUnit === opt.value && styles.pillActive]}
-                    onPress={() => setReminderUnit(opt.value)}
-                  >
-                    <Text style={[styles.pillText, reminderUnit === opt.value && styles.pillTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              <UnitPicker value={reminderUnit} onChange={setReminderUnit} />
             </View>
             <Pressable style={styles.addButton} onPress={addReminder}>
               <Text style={styles.addButtonText}>+ Agregar recordatorio</Text>
             </Pressable>
           </View>
 
-          <View style={styles.subsection}>
+          <View style={styles.card}>
             <View style={styles.switchRow}>
-              <Text style={styles.subsectionLabel}>Notificar a todo el hogar</Text>
+              <Text style={styles.cardTitle}>Notificar a todo el hogar</Text>
               <Switch
                 value={value.notifyAllHousehold}
                 onValueChange={(notifyAllHousehold) => patch({ notifyAllHousehold })}
@@ -181,6 +182,8 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
 
             {!value.notifyAllHousehold && (
               <View style={styles.recipientsBox}>
+                <Text style={styles.recipientsHint}>Destinatarios</Text>
+
                 {selectedMembers.length > 0 && (
                   <View style={styles.chipWrap}>
                     {selectedMembers.map((member) => (
@@ -195,7 +198,7 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
                 )}
 
                 <TextInput
-                  style={styles.textInput}
+                  style={styles.searchInput}
                   value={recipientSearch}
                   onChangeText={setRecipientSearch}
                   placeholder="Buscar integrante del hogar"
@@ -206,6 +209,7 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
                   <View style={styles.searchResults}>
                     {searchResults.map((member) => (
                       <Pressable key={member.id} style={styles.searchResultRow} onPress={() => addRecipient(member.id)}>
+                        <Ionicons name="person-add-outline" size={16} color={Colors.gold} />
                         <Text style={styles.chipText}>{member.display_name}</Text>
                       </Pressable>
                     ))}
@@ -214,27 +218,34 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
               </View>
             )}
           </View>
-        </View>
+        </>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { gap: 12 },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  stack: { gap: 14 },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 16,
+    gap: 14,
   },
-  sectionLabel: {
+  cardTitle: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
     color: Colors.silverDim,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  body: { gap: 16 },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   pillRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   pill: {
     paddingVertical: 8,
@@ -247,54 +258,63 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: Colors.gold, borderColor: Colors.gold },
   pillText: { fontFamily: 'Inter_400Regular', fontSize: 13, color: Colors.silverDim },
   pillTextActive: { color: Colors.bg, fontFamily: 'Inter_500Medium' },
-  textInput: {
+  unifiedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
     backgroundColor: Colors.surface2,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 10,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    fontFamily: 'Inter_400Regular',
-    fontSize: 15,
-    color: Colors.silver,
+    padding: 12,
   },
-  intervalRow: { gap: 10 },
-  intervalInput: {
-    backgroundColor: Colors.surface2,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+  unifiedRowLabel: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 15,
-    color: Colors.silver,
-    width: 80,
-  },
-  subsection: { gap: 10 },
-  subsectionLabel: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.silverDim,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
   },
-  chipRow: {
+  intervalInput: {
+    backgroundColor: Colors.bg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 15,
+    color: Colors.gold,
+    width: 56,
+    textAlign: 'center',
+  },
+  reminderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.surface2,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.gold,
     paddingVertical: 10,
     paddingHorizontal: 14,
+    gap: 10,
+  },
+  reminderText: {
+    flex: 1,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: Colors.silver,
   },
   chipText: { fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.silver },
   chipRemove: { fontSize: 14, color: Colors.silverMuted, paddingHorizontal: 4 },
-  addButton: { paddingVertical: 6 },
+  addButton: { paddingVertical: 4, alignSelf: 'flex-start' },
   addButtonText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.gold },
   recipientsBox: { gap: 10 },
+  recipientsHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: Colors.silverMuted,
+  },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   recipientChip: {
     flexDirection: 'row',
@@ -303,19 +323,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface2,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.gold,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
-  searchResults: {
+  searchInput: {
     backgroundColor: Colors.surface2,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: Colors.silver,
+  },
+  searchResults: {
+    backgroundColor: Colors.bg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.gold,
     overflow: 'hidden',
   },
   searchResultRow: {
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
     paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
 });
