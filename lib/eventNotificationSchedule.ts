@@ -19,7 +19,7 @@ const MS_PER_UNIT: Record<'hour' | 'day' | 'week', number> = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
-function addInterval(date: Date, value: number, unit: NotificationTimeUnit): Date {
+export function addInterval(date: Date, value: number, unit: NotificationTimeUnit): Date {
   if (unit === 'month') {
     const result = new Date(date);
     result.setUTCMonth(result.getUTCMonth() + value);

@@ -1,9 +1,10 @@
-import { Pressable } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ColorValue } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useAuth } from '../../hooks/useAuth';
+import { NotificationBell } from '../../components/modules/notifications/NotificationBell';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -24,6 +25,15 @@ function SignOutButton() {
     >
       <Ionicons name="log-out-outline" size={22} color={Colors.gold} />
     </Pressable>
+  );
+}
+
+function HeaderActions() {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <NotificationBell />
+      <SignOutButton />
+    </View>
   );
 }
 
@@ -55,7 +65,7 @@ export default function TabLayout() {
         options={{
           title: 'Inicio',
           tabBarIcon: tabIcon('home-outline'),
-          headerRight: () => <SignOutButton />,
+          headerRight: () => <HeaderActions />,
         }}
       />
       <Tabs.Screen
