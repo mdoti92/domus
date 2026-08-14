@@ -10,6 +10,7 @@ import {
 import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../hooks/useAuth';
+import { useRegisterPushToken } from '../hooks/useRegisterPushToken';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,8 +24,15 @@ export default function RootLayout() {
   });
 
   const { session, loading: authLoading } = useAuth();
+  const { registerToken } = useRegisterPushToken();
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    if (session?.user.id) {
+      registerToken(session.user.id);
+    }
+  }, [session?.user.id, registerToken]);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
