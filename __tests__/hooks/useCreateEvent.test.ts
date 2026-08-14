@@ -64,6 +64,21 @@ describe('useCreateEvent', () => {
     });
   });
 
+  it('returns the id of the created event', async () => {
+    (supabase.from as jest.Mock)
+      .mockReturnValueOnce(makeEventsChain({ data: { id: 'ev-1' }, error: null }))
+      .mockReturnValueOnce(makeValuesChain({ data: null, error: null }));
+
+    const { result } = renderHook(() => useCreateEvent());
+
+    let createdEvent: { id: string } | undefined;
+    await act(async () => {
+      createdEvent = await result.current.createEvent('asset-1', baseInput);
+    });
+
+    expect(createdEvent).toEqual({ id: 'ev-1' });
+  });
+
   it('inserts parameter values with correct mapping', async () => {
     (supabase.from as jest.Mock)
       .mockReturnValueOnce(makeEventsChain({ data: { id: 'ev-1' }, error: null }))

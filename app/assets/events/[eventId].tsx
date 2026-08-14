@@ -15,9 +15,17 @@ import { Colors } from '../../../constants/colors';
 import { useEventDetail } from '../../../hooks/useEventDetail';
 import { useUpdateEvent } from '../../../hooks/useUpdateEvent';
 import { useDeleteEvent } from '../../../hooks/useDeleteEvent';
+import { useEventNotificationConfig } from '../../../hooks/useEventNotificationConfig';
+import { useSaveEventNotificationConfig } from '../../../hooks/useSaveEventNotificationConfig';
+import { useHouseholdMembers } from '../../../hooks/useHouseholdMembers';
 import { EditEventModal } from '../../../components/modules/assets/EditEventModal';
 import { UpdateEventInput } from '../../../hooks/useUpdateEvent';
 import { EventParameterValue, EventStatus } from '../../../types';
+import {
+  NotificationFormState,
+  fromEventNotificationConfig,
+  toSaveEventNotificationConfigInput,
+} from '../../../lib/notificationFormState';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -45,11 +53,21 @@ export default function EventDetailScreen() {
   const { event, loading, error, refetch } = useEventDetail(eventId);
   const { updateEvent } = useUpdateEvent();
   const { deleteEvent } = useDeleteEvent();
+  const {
+    config: notificationConfig,
+    reminders: notificationReminders,
+    recipients: notificationRecipients,
+    loading: notificationLoading,
+    refetch: refetchNotificationConfig,
+  } = useEventNotificationConfig(eventId);
+  const { saveConfig } = useSaveEventNotificationConfig();
+  const { members: householdMembers } = useHouseholdMembers();
   const [editVisible, setEditVisible] = useState(false);
 
-  const handleSubmitEdit = async (input: UpdateEventInput) => {
+  const handleSubmitEdit = async (input: UpdateEventInput, notification: NotificationFormState) => {
     await updateEvent(eventId, input);
-    await refetch();
+    await saveConfig(eventId, toSaveEventNotificationConfigInput(notification));
+    await Promise.all([refetch(), refetchNotificationConfig()]);
   };
 
   const handleDelete = async () => {
@@ -65,7 +83,7 @@ export default function EventDetailScreen() {
     }
   };
 
-  if (loading) {
+  if (loading || notificationLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={Colors.gold} />
@@ -153,6 +171,12 @@ export default function EventDetailScreen() {
         <EditEventModal
           visible={editVisible}
           event={event}
+          initialNotification={fromEventNotificationConfig(
+            notificationConfig,
+            notificationReminders,
+            notificationRecipients
+          )}
+          householdMembers={householdMembers}
           onClose={() => setEditVisible(false)}
           onSubmit={handleSubmitEdit}
           onDelete={handleDelete}

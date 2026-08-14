@@ -16,14 +16,18 @@ import {
 import { Colors } from '../../../constants/colors';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
-import { EventWithValues, EventStatus, ParameterType } from '../../../types';
+import { EventWithValues, EventStatus, HouseholdMember, ParameterType } from '../../../types';
 import { UpdateEventInput } from '../../../hooks/useUpdateEvent';
+import { NotificationConfigSection } from './NotificationConfigSection';
+import { NotificationFormState, validateNotificationFormState } from '../../../lib/notificationFormState';
 
 interface EditEventModalProps {
   visible: boolean;
   event: EventWithValues;
+  initialNotification: NotificationFormState;
+  householdMembers: HouseholdMember[];
   onClose: () => void;
-  onSubmit: (input: UpdateEventInput) => Promise<void>;
+  onSubmit: (input: UpdateEventInput, notification: NotificationFormState) => Promise<void>;
   onDelete: () => void;
 }
 
@@ -42,13 +46,22 @@ function initParamValues(event: EventWithValues): Record<string, string | boolea
   return result;
 }
 
-export function EditEventModal({ visible, event, onClose, onSubmit, onDelete }: EditEventModalProps) {
+export function EditEventModal({
+  visible,
+  event,
+  initialNotification,
+  householdMembers,
+  onClose,
+  onSubmit,
+  onDelete,
+}: EditEventModalProps) {
   const [date, setDate] = useState(event.date);
   const [notes, setNotes] = useState(event.notes ?? '');
   const [status, setStatus] = useState<EventStatus>(event.status);
   const [paramValues, setParamValues] = useState<Record<string, string | boolean>>(
     () => initParamValues(event)
   );
+  const [notification, setNotification] = useState<NotificationFormState>(initialNotification);
   const [submitting, setSubmitting] = useState(false);
   const [dateError, setDateError] = useState<string | undefined>();
 
@@ -57,6 +70,7 @@ export function EditEventModal({ visible, event, onClose, onSubmit, onDelete }: 
     setNotes(event.notes ?? '');
     setStatus(event.status);
     setParamValues(initParamValues(event));
+    setNotification(initialNotification);
     setDateError(undefined);
     setSubmitting(false);
   };
@@ -83,6 +97,13 @@ export function EditEventModal({ visible, event, onClose, onSubmit, onDelete }: 
       return;
     }
     setDateError(undefined);
+
+    const notificationError = validateNotificationFormState(notification);
+    if (notificationError) {
+      Alert.alert('Notificación incompleta', notificationError);
+      return;
+    }
+
     setSubmitting(true);
 
     const parameterValues = event.event_parameter_values.map((pv) => ({
@@ -94,12 +115,15 @@ export function EditEventModal({ visible, event, onClose, onSubmit, onDelete }: 
     }));
 
     try {
-      await onSubmit({
-        date: date.trim(),
-        notes: notes.trim() || null,
-        status,
-        parameterValues,
-      });
+      await onSubmit(
+        {
+          date: date.trim(),
+          notes: notes.trim() || null,
+          status,
+          parameterValues,
+        },
+        notification
+      );
       onClose();
     } finally {
       setSubmitting(false);
@@ -203,6 +227,12 @@ export function EditEventModal({ visible, event, onClose, onSubmit, onDelete }: 
                   textAlignVertical="top"
                 />
               </View>
+
+              <NotificationConfigSection
+                value={notification}
+                onChange={setNotification}
+                householdMembers={householdMembers}
+              />
             </ScrollView>
 
             <View style={styles.footer}>
