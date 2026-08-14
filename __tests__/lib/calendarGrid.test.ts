@@ -1,4 +1,4 @@
-import { getCalendarMonthGrid } from '../../lib/calendarGrid';
+import { getCalendarMonthGrid, chunkIntoWeeks } from '../../lib/calendarGrid';
 
 describe('getCalendarMonthGrid', () => {
   it('returns exactly 42 days (6 full weeks)', () => {
@@ -38,5 +38,33 @@ describe('getCalendarMonthGrid', () => {
     const firstOfMonth = grid.find((d) => d.date.getUTCDate() === 1 && d.date.getUTCMonth() === 11);
     expect(firstOfMonth).toBeDefined();
     expect(firstOfMonth!.inCurrentMonth).toBe(true);
+  });
+});
+
+describe('chunkIntoWeeks', () => {
+  it('splits the 42-day grid into 6 weeks', () => {
+    const grid = getCalendarMonthGrid(2026, 7);
+    expect(chunkIntoWeeks(grid)).toHaveLength(6);
+  });
+
+  it('gives each week exactly 7 days', () => {
+    const grid = getCalendarMonthGrid(2026, 7);
+    for (const week of chunkIntoWeeks(grid)) {
+      expect(week).toHaveLength(7);
+    }
+  });
+
+  it('preserves day order within and across weeks', () => {
+    const grid = getCalendarMonthGrid(2026, 7);
+    const weeks = chunkIntoWeeks(grid);
+    const flattened = weeks.flat();
+    expect(flattened.map((d) => d.date.getTime())).toEqual(grid.map((d) => d.date.getTime()));
+  });
+
+  it('starts each week on a Monday', () => {
+    const grid = getCalendarMonthGrid(2026, 7);
+    for (const week of chunkIntoWeeks(grid)) {
+      expect(week[0].date.getUTCDay()).toBe(1);
+    }
   });
 });
