@@ -1,8 +1,10 @@
 import {
   createDefaultNotificationFormState,
+  createReminderFormRow,
   toSaveEventNotificationConfigInput,
   fromEventNotificationConfig,
   validateNotificationFormState,
+  getPositiveNumberError,
   NotificationFormState,
 } from '../../lib/notificationFormState';
 import { EventNotificationConfig, EventNotificationReminder, EventNotificationRecipient } from '../../types';
@@ -17,6 +19,39 @@ describe('createDefaultNotificationFormState', () => {
     expect(state.notifyAllHousehold).toBe(true);
     expect(state.reminders).toEqual([]);
     expect(state.recipientIds).toEqual([]);
+  });
+});
+
+describe('createReminderFormRow', () => {
+  it('defaults to value "1" and unit "day"', () => {
+    const row = createReminderFormRow();
+    expect(row.value).toBe('1');
+    expect(row.unit).toBe('day');
+    expect(row.id).toBeTruthy();
+  });
+
+  it('generates a unique id per call', () => {
+    const a = createReminderFormRow();
+    const b = createReminderFormRow();
+    expect(a.id).not.toBe(b.id);
+  });
+
+  it('accepts overrides for value and unit', () => {
+    const row = createReminderFormRow({ value: '3', unit: 'week' });
+    expect(row.value).toBe('3');
+    expect(row.unit).toBe('week');
+  });
+});
+
+describe('getPositiveNumberError', () => {
+  it('returns an error for empty, zero, negative or non-numeric values', () => {
+    for (const value of ['', '0', '-3', 'abc']) {
+      expect(getPositiveNumberError(value)).not.toBeNull();
+    }
+  });
+
+  it('returns null for a valid positive number', () => {
+    expect(getPositiveNumberError('6')).toBeNull();
   });
 });
 
@@ -55,15 +90,18 @@ describe('toSaveEventNotificationConfigInput', () => {
     expect(result.recurrence_interval_unit).toBe('month');
   });
 
-  it('passes reminders through unchanged', () => {
+  it('parses each reminder row value into a number, dropping the client-side id', () => {
     const reminders = [
-      { offset_value: 1, offset_unit: 'week' as const },
-      { offset_value: 1, offset_unit: 'day' as const },
+      { id: 'a', value: '1', unit: 'week' as const },
+      { id: 'b', value: '2', unit: 'day' as const },
     ];
 
     const result = toSaveEventNotificationConfigInput({ ...baseState, reminders });
 
-    expect(result.reminders).toEqual(reminders);
+    expect(result.reminders).toEqual([
+      { offset_value: 1, offset_unit: 'week' },
+      { offset_value: 2, offset_unit: 'day' },
+    ]);
   });
 
   it('sends an empty recipient list when notifying the whole household', () => {
@@ -132,7 +170,7 @@ describe('fromEventNotificationConfig', () => {
     expect(result.intervalUnit).toBe('month');
   });
 
-  it('maps reminders and recipients', () => {
+  it('maps reminders (using the row id from the DB, and the value as a string) and recipients', () => {
     const reminders: EventNotificationReminder[] = [
       { id: 'r1', config_id: 'config-1', offset_value: 1, offset_unit: 'day', created_at: '2026-01-01T00:00:00Z' },
     ];
@@ -146,7 +184,7 @@ describe('fromEventNotificationConfig', () => {
       recipients
     );
 
-    expect(result.reminders).toEqual([{ offset_value: 1, offset_unit: 'day' }]);
+    expect(result.reminders).toEqual([{ id: 'r1', value: '1', unit: 'day' }]);
     expect(result.notifyAllHousehold).toBe(false);
     expect(result.recipientIds).toEqual(['hm-1']);
   });
@@ -197,6 +235,34 @@ describe('validateNotificationFormState', () => {
       enabled: true,
       recurrenceType: 'interval',
       intervalValue: '6',
+    };
+    expect(validateNotificationFormState(state)).toBeNull();
+  });
+
+  it('requires every reminder row to have a positive numeric value', () => {
+    const state: NotificationFormState = {
+      ...createDefaultNotificationFormState(),
+      enabled: true,
+      recurrenceType: 'date',
+      recurrenceDate: '2026-12-25T00:00:00+00:00',
+      reminders: [
+        { id: 'a', value: '1', unit: 'day' },
+        { id: 'b', value: '0', unit: 'week' },
+      ],
+    };
+    expect(validateNotificationFormState(state)).not.toBeNull();
+  });
+
+  it('passes when all reminder rows have a positive numeric value', () => {
+    const state: NotificationFormState = {
+      ...createDefaultNotificationFormState(),
+      enabled: true,
+      recurrenceType: 'date',
+      recurrenceDate: '2026-12-25T00:00:00+00:00',
+      reminders: [
+        { id: 'a', value: '1', unit: 'day' },
+        { id: 'b', value: '2', unit: 'week' },
+      ],
     };
     expect(validateNotificationFormState(state)).toBeNull();
   });

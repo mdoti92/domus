@@ -3,7 +3,7 @@ import { View, Text, Pressable, Switch, TextInput, StyleSheet } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
 import { HouseholdMember, NotificationTimeUnit, RecurrenceType } from '../../../types';
-import { NotificationFormState } from '../../../lib/notificationFormState';
+import { NotificationFormState, createReminderFormRow, getPositiveNumberError } from '../../../lib/notificationFormState';
 import { DatePickerField } from '../../ui/DatePickerField';
 
 interface NotificationConfigSectionProps {
@@ -25,10 +25,6 @@ const TIME_UNIT_OPTIONS: { value: NotificationTimeUnit; label: string }[] = [
   { value: 'year', label: 'año' },
 ];
 
-function unitLabel(unit: NotificationTimeUnit): string {
-  return TIME_UNIT_OPTIONS.find((o) => o.value === unit)?.label ?? unit;
-}
-
 function UnitPicker({ value, onChange }: { value: NotificationTimeUnit; onChange: (unit: NotificationTimeUnit) => void }) {
   return (
     <View style={styles.pillRow}>
@@ -46,21 +42,22 @@ function UnitPicker({ value, onChange }: { value: NotificationTimeUnit; onChange
 }
 
 export function NotificationConfigSection({ value, onChange, householdMembers }: NotificationConfigSectionProps) {
-  const [reminderValue, setReminderValue] = useState('1');
-  const [reminderUnit, setReminderUnit] = useState<NotificationTimeUnit>('day');
   const [recipientSearch, setRecipientSearch] = useState('');
 
   const patch = (partial: Partial<NotificationFormState>) => onChange({ ...value, ...partial });
 
   const addReminder = () => {
-    const parsed = Number(reminderValue);
-    if (!parsed || parsed <= 0) return;
-    patch({ reminders: [...value.reminders, { offset_value: parsed, offset_unit: reminderUnit }] });
-    setReminderValue('1');
+    patch({ reminders: [...value.reminders, createReminderFormRow()] });
   };
 
-  const removeReminder = (index: number) => {
-    patch({ reminders: value.reminders.filter((_, i) => i !== index) });
+  const updateReminder = (id: string, partial: { value?: string; unit?: NotificationTimeUnit }) => {
+    patch({
+      reminders: value.reminders.map((reminder) => (reminder.id === id ? { ...reminder, ...partial } : reminder)),
+    });
+  };
+
+  const removeReminder = (id: string) => {
+    patch({ reminders: value.reminders.filter((reminder) => reminder.id !== id) });
   };
 
   const addRecipient = (memberId: string) => {
@@ -121,18 +118,23 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
                 placeholder="Elegir la próxima ocurrencia"
               />
             ) : (
-              <View style={styles.unifiedRow}>
-                <Ionicons name="repeat-outline" size={18} color={Colors.gold} />
-                <Text style={styles.unifiedRowLabel}>cada</Text>
-                <TextInput
-                  style={styles.intervalInput}
-                  value={value.intervalValue}
-                  onChangeText={(intervalValue) => patch({ intervalValue })}
-                  keyboardType="number-pad"
-                  placeholder="1"
-                  placeholderTextColor={Colors.silverMuted}
-                />
-                <UnitPicker value={value.intervalUnit} onChange={(intervalUnit) => patch({ intervalUnit })} />
+              <View>
+                <View style={styles.unifiedRow}>
+                  <Ionicons name="repeat-outline" size={18} color={Colors.gold} />
+                  <Text style={styles.unifiedRowLabel}>cada</Text>
+                  <TextInput
+                    style={styles.intervalInput}
+                    value={value.intervalValue}
+                    onChangeText={(intervalValue) => patch({ intervalValue })}
+                    keyboardType="number-pad"
+                    placeholder="1"
+                    placeholderTextColor={Colors.silverMuted}
+                  />
+                  <UnitPicker value={value.intervalUnit} onChange={(intervalUnit) => patch({ intervalUnit })} />
+                </View>
+                {getPositiveNumberError(value.intervalValue) && (
+                  <Text style={styles.fieldError}>{getPositiveNumberError(value.intervalValue)}</Text>
+                )}
               </View>
             )}
           </View>
@@ -140,30 +142,30 @@ export function NotificationConfigSection({ value, onChange, householdMembers }:
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Recordatorios</Text>
 
-            {value.reminders.map((reminder, index) => (
-              <View key={`${reminder.offset_unit}-${reminder.offset_value}-${index}`} style={styles.reminderRow}>
-                <Ionicons name="alarm-outline" size={16} color={Colors.silverDim} />
-                <Text style={styles.reminderText}>
-                  {reminder.offset_value} {unitLabel(reminder.offset_unit)} antes
-                </Text>
-                <Pressable onPress={() => removeReminder(index)} accessibilityLabel="Quitar recordatorio">
-                  <Text style={styles.chipRemove}>✕</Text>
-                </Pressable>
-              </View>
-            ))}
+            {value.reminders.map((reminder) => {
+              const reminderError = getPositiveNumberError(reminder.value);
+              return (
+                <View key={reminder.id}>
+                  <View style={styles.unifiedRow}>
+                    <Ionicons name="alarm-outline" size={16} color={Colors.silverDim} />
+                    <TextInput
+                      style={styles.intervalInput}
+                      value={reminder.value}
+                      onChangeText={(text) => updateReminder(reminder.id, { value: text })}
+                      keyboardType="number-pad"
+                      placeholder="1"
+                      placeholderTextColor={Colors.silverMuted}
+                    />
+                    <UnitPicker value={reminder.unit} onChange={(unit) => updateReminder(reminder.id, { unit })} />
+                    <Pressable onPress={() => removeReminder(reminder.id)} accessibilityLabel="Quitar recordatorio">
+                      <Text style={styles.chipRemove}>✕</Text>
+                    </Pressable>
+                  </View>
+                  {reminderError && <Text style={styles.fieldError}>{reminderError}</Text>}
+                </View>
+              );
+            })}
 
-            <View style={styles.unifiedRow}>
-              <Ionicons name="add-circle-outline" size={18} color={Colors.silverDim} />
-              <TextInput
-                style={styles.intervalInput}
-                value={reminderValue}
-                onChangeText={setReminderValue}
-                keyboardType="number-pad"
-                placeholder="1"
-                placeholderTextColor={Colors.silverMuted}
-              />
-              <UnitPicker value={reminderUnit} onChange={setReminderUnit} />
-            </View>
             <Pressable style={styles.addButton} onPress={addReminder}>
               <Text style={styles.addButtonText}>+ Agregar recordatorio</Text>
             </Pressable>
@@ -287,23 +289,11 @@ const styles = StyleSheet.create({
     width: 56,
     textAlign: 'center',
   },
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surface2,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.gold,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    gap: 10,
-  },
-  reminderText: {
-    flex: 1,
+  fieldError: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: Colors.silver,
+    fontSize: 12,
+    color: '#c87a60',
+    marginTop: 6,
   },
   chipText: { fontFamily: 'Inter_400Regular', fontSize: 14, color: Colors.silver },
   chipRemove: { fontSize: 14, color: Colors.silverMuted, paddingHorizontal: 4 },
