@@ -16,29 +16,35 @@ import { useAuth } from '../hooks/useAuth';
 type Mode = 'login' | 'register';
 
 export default function LoginScreen() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) return;
+  const withLoadingAndError = async (action: () => Promise<void>): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
-      if (mode === 'login') {
-        await signIn(email.trim(), password);
-      } else {
-        await signUp(email.trim(), password);
-      }
+      await action();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String((err as { message?: string })?.message ?? 'Error inesperado');
       setError(message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (): Promise<void> => {
+    if (!email.trim() || !password.trim()) return;
+    await withLoadingAndError(() =>
+      mode === 'login' ? signIn(email.trim(), password) : signUp(email.trim(), password)
+    );
+  };
+
+  const handleGoogleSignIn = async (): Promise<void> => {
+    await withLoadingAndError(signInWithGoogle);
   };
 
   const toggleMode = () => {
@@ -96,11 +102,21 @@ export default function LoginScreen() {
           {loading ? (
             <ActivityIndicator color={Colors.gold} style={styles.loader} />
           ) : (
-            <Button
-              label={mode === 'login' ? 'Entrar' : 'Registrarme'}
-              onPress={handleSubmit}
-              disabled={!canSubmit}
-            />
+            <>
+              <Button
+                label={mode === 'login' ? 'Entrar' : 'Registrarme'}
+                onPress={handleSubmit}
+                disabled={!canSubmit}
+              />
+
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>o</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Button label="Continuar con Google" onPress={handleGoogleSignIn} variant="ghost" />
+            </>
           )}
 
           <Button
@@ -170,5 +186,20 @@ const styles = StyleSheet.create({
   },
   loader: {
     paddingVertical: 10,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: Colors.silverMuted,
   },
 });

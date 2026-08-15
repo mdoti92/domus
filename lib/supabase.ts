@@ -15,5 +15,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // PKCE en vez de implicit: el login con Google (DOM-30) intercambia el
+    // ?code=... del redirect manualmente vía exchangeCodeForSession, funciona
+    // igual en web/iOS/Android sin depender de parsear el fragmento de la URL.
+    flowType: 'pkce',
   },
 });
