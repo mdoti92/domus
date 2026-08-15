@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ColorValue } from 'react-native';
 import { Colors } from '../../constants/colors';
@@ -28,10 +28,25 @@ function SignOutButton() {
   );
 }
 
+function SettingsButton() {
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => router.push('/settings')}
+      style={{ paddingRight: 12 }}
+      accessibilityRole="button"
+      accessibilityLabel="Ajustes"
+    >
+      <Ionicons name="settings-outline" size={22} color={Colors.gold} />
+    </Pressable>
+  );
+}
+
 function HeaderActions() {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <NotificationBell />
+      <SettingsButton />
       <SignOutButton />
     </View>
   );

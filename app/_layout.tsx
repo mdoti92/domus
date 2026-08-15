@@ -73,6 +73,18 @@ export default function RootLayout() {
           },
         }}
       />
+      <Stack.Screen
+        name="settings"
+        options={{
+          title: 'Ajustes',
+          headerStyle: { backgroundColor: Colors.surface },
+          headerTintColor: Colors.gold,
+          headerTitleStyle: {
+            fontFamily: 'CormorantGaramond_600SemiBold',
+            fontSize: 22,
+          },
+        }}
+      />
     </Stack>
   );
 }
