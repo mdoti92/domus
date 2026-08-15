@@ -1,4 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 
@@ -10,8 +12,18 @@ jest.mock('../../lib/supabase', () => ({
       signInWithPassword: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
+      signInWithOAuth: jest.fn(),
+      exchangeCodeForSession: jest.fn(),
     },
   },
+}));
+
+jest.mock('expo-web-browser', () => ({
+  openAuthSessionAsync: jest.fn(),
+}));
+
+jest.mock('expo-linking', () => ({
+  createURL: jest.fn(() => 'domus:///'),
 }));
 
 const mockSession = { user: { id: 'u1', email: 'a@b.com' }, access_token: 'tok' };
@@ -190,6 +202,98 @@ describe('useAuth', () => {
       });
 
       expect(thrownError).toEqual(authError);
+    });
+  });
+
+  describe('signInWithGoogle', () => {
+    it('starts the OAuth flow, opens the browser session and exchanges the code (CA2/CA3)', async () => {
+      setupAuthMocks();
+      (supabase.auth.signInWithOAuth as jest.Mock).mockResolvedValue({
+        data: { url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=abc' },
+        error: null,
+      });
+      (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValue({
+        type: 'success',
+        url: 'domus:///?code=the-code',
+      });
+      (supabase.auth.exchangeCodeForSession as jest.Mock).mockResolvedValue({ error: null });
+
+      const { result } = renderHook(() => useAuth());
+
+      await act(async () => {
+        await result.current.signInWithGoogle();
+      });
+
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: { redirectTo: 'domus:///', skipBrowserRedirect: true },
+      });
+      expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalledWith(
+        'https://accounts.google.com/o/oauth2/v2/auth?client_id=abc',
+        'domus:///'
+      );
+      expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledWith('the-code');
+    });
+
+    it('throws when signInWithOAuth fails, without opening the browser', async () => {
+      setupAuthMocks();
+      const authError = { message: 'provider not configured' };
+      (supabase.auth.signInWithOAuth as jest.Mock).mockResolvedValue({ data: { url: null }, error: authError });
+
+      const { result } = renderHook(() => useAuth());
+
+      let thrownError: unknown;
+      await act(async () => {
+        try { await result.current.signInWithGoogle(); }
+        catch (e) { thrownError = e; }
+      });
+
+      expect(thrownError).toEqual(authError);
+      expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
+    });
+
+    it('throws when the user cancels the Google auth session', async () => {
+      setupAuthMocks();
+      (supabase.auth.signInWithOAuth as jest.Mock).mockResolvedValue({
+        data: { url: 'https://accounts.google.com/o/oauth2/v2/auth' },
+        error: null,
+      });
+      (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValue({ type: 'cancel' });
+
+      const { result } = renderHook(() => useAuth());
+
+      let thrownError: unknown;
+      await act(async () => {
+        try { await result.current.signInWithGoogle(); }
+        catch (e) { thrownError = e; }
+      });
+
+      expect(thrownError).toBeInstanceOf(Error);
+      expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    });
+
+    it('throws when exchangeCodeForSession fails', async () => {
+      setupAuthMocks();
+      (supabase.auth.signInWithOAuth as jest.Mock).mockResolvedValue({
+        data: { url: 'https://accounts.google.com/o/oauth2/v2/auth' },
+        error: null,
+      });
+      (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValue({
+        type: 'success',
+        url: 'domus:///?code=the-code',
+      });
+      const exchangeError = { message: 'invalid code' };
+      (supabase.auth.exchangeCodeForSession as jest.Mock).mockResolvedValue({ error: exchangeError });
+
+      const { result } = renderHook(() => useAuth());
+
+      let thrownError: unknown;
+      await act(async () => {
+        try { await result.current.signInWithGoogle(); }
+        catch (e) { thrownError = e; }
+      });
+
+      expect(thrownError).toEqual(exchangeError);
     });
   });
 });
