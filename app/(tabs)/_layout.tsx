@@ -90,13 +90,6 @@ export default function TabLayout() {
           tabBarIcon: tabIcon('construct-outline'),
         }}
       />
-      <Tabs.Screen
-        name="obras"
-        options={{
-          title: 'Obras',
-          tabBarIcon: tabIcon('hammer-outline'),
-        }}
-      />
     </Tabs>
   );
 }
