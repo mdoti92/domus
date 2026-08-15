@@ -36,7 +36,7 @@ Documento de relevamiento hecho probando la app en `npm run web` (Chrome vía na
 
 ## Lo que NO funciona / está pendiente
 
-- **Tabs "Mantenimiento" y "Obras"**: siguen siendo placeholders literales ("Próximamente...", `app/(tabs)/mantenimiento.tsx` y `obras.tsx`). Desde que el modelo pasó a estar centrado en Asset (categoría = solo un atributo para agrupar, no un módulo separado — ver CLAUDE.md), estos tabs quedaron huérfanos. Vale la pena decidir si se eliminan y todo se maneja desde Home con el filtro por categoría, o si cumplen otro propósito.
+- ~~Tabs "Mantenimiento" y "Obras" huérfanas~~ — **resuelto** (DOM-27): la lista de assets (con filtro, FAB y modal de creación) se mudó de "Inicio" a "Mantenimiento". La tab "Obras" se eliminó. "Inicio" quedó con el placeholder "Próximamente..." a la espera de convertirse en el calendario familiar.
 - ~~Bug de tipos en `groupAssetsByCategory`~~ — **arreglado** (2026-08-13): la función ahora es genérica (`<T extends Asset>`) y preserva `lastEvent` cuando recibe `AssetWithLastEvent[]`. `npx tsc --noEmit` limpio.
 - **Conectividad Expo Go / Metro en el celular físico**: quedó afuera de este relevamiento por decisión del usuario — no es representativo de cómo se va a deployar (web) y se resuelve más adelante con un build real (EAS) en vez de depender de Expo Go.
 
