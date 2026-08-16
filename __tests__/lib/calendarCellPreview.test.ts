@@ -1,7 +1,13 @@
 import { getCellPreview } from '../../lib/calendarCellPreview';
 import { DayItem } from '../../lib/calendarDayActivity';
 
-const item = (n: number): DayItem => ({ type: 'event', eventId: `ev-${n}`, assetId: `asset-${n}`, assetName: `Asset ${n}` });
+const item = (n: number): DayItem => ({
+  type: 'event',
+  eventId: `ev-${n}`,
+  assetId: `asset-${n}`,
+  assetName: `Asset ${n}`,
+  status: 'pending',
+});
 
 describe('getCellPreview', () => {
   it('shows the single item with no overflow when there is one event (CA1)', () => {

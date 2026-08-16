@@ -18,14 +18,16 @@ const enabledDateConfig = (recurrenceDate: string): RecurrenceConfig => ({
 });
 
 describe('getDayItems', () => {
-  it('includes a registered event that falls on the given day (CA1)', () => {
+  it('includes a registered event that falls on the given day, with its status (CA1)', () => {
     const records: EventActivityRecord[] = [
-      { id: 'ev-1', date: '2026-08-20T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', config: null },
+      { id: 'ev-1', date: '2026-08-20T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', status: 'pending', config: null },
     ];
 
     const items = getDayItems('2026-08-20', records);
 
-    expect(items).toEqual([{ type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina' }]);
+    expect(items).toEqual([
+      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', status: 'pending' },
+    ]);
   });
 
   it('includes the next occurrence of an enabled recurring event on its day, without an event id (CA1/CA3)', () => {
@@ -35,6 +37,7 @@ describe('getDayItems', () => {
         date: '2026-08-01T00:00:00+00:00',
         assetId: 'asset-1',
         assetName: 'Piscina',
+        status: 'pending',
         config: enabledDateConfig('2026-09-15T00:00:00+00:00'),
       },
     ];
@@ -46,7 +49,7 @@ describe('getDayItems', () => {
 
   it('ignores a disabled recurrence config', () => {
     const records: EventActivityRecord[] = [
-      { id: 'ev-1', date: '2026-08-01T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', config: disabledConfig },
+      { id: 'ev-1', date: '2026-08-01T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', status: 'pending', config: disabledConfig },
     ];
 
     expect(getDayItems('2026-09-15', records)).toEqual([]);
@@ -54,7 +57,7 @@ describe('getDayItems', () => {
 
   it('returns an empty list for a day with no activity (CA4)', () => {
     const records: EventActivityRecord[] = [
-      { id: 'ev-1', date: '2026-08-20T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', config: null },
+      { id: 'ev-1', date: '2026-08-20T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', status: 'pending', config: null },
     ];
 
     expect(getDayItems('2026-08-21', records)).toEqual([]);
@@ -62,12 +65,13 @@ describe('getDayItems', () => {
 
   it('returns both an event and a next-occurrence item when both fall on the same day for different events', () => {
     const records: EventActivityRecord[] = [
-      { id: 'ev-1', date: '2026-08-20T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', config: null },
+      { id: 'ev-1', date: '2026-08-20T00:00:00+00:00', assetId: 'asset-1', assetName: 'Piscina', status: 'done', config: null },
       {
         id: 'ev-2',
         date: '2026-08-01T00:00:00+00:00',
         assetId: 'asset-2',
         assetName: 'Lavarropas',
+        status: 'pending',
         config: enabledDateConfig('2026-08-20T00:00:00+00:00'),
       },
     ];
@@ -75,7 +79,7 @@ describe('getDayItems', () => {
     const items = getDayItems('2026-08-20', records);
 
     expect(items).toEqual([
-      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina' },
+      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', status: 'done' },
       { type: 'next_occurrence', assetId: 'asset-2', assetName: 'Lavarropas' },
     ]);
   });

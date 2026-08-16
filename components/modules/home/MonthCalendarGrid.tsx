@@ -4,11 +4,42 @@ import { Colors } from '../../../constants/colors';
 import { getCalendarMonthGrid, chunkIntoWeeks, toISODate, MONTH_NAMES, WEEKDAY_LABELS } from '../../../lib/calendarGrid';
 import { DayItem } from '../../../lib/calendarDayActivity';
 import { getCellPreview } from '../../../lib/calendarCellPreview';
+import { getEventVisualStatus, EventVisualStatus } from '../../../lib/eventVisualStatus';
 
 interface MonthCalendarGridProps {
   getItemsForDate: (iso: string) => DayItem[];
   onSelectDay: (iso: string) => void;
 }
+
+// DOM-35: estilo por estado del evento — cada uno combina color y (para
+// tentative) un tratamiento no-solo-color (borde punteado), para que sean
+// distinguibles más allá del color solo (CA6).
+const STATUS_LINE_STYLES: Record<EventVisualStatus, object> = {
+  past: {
+    backgroundColor: Colors.surface2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  scheduled: {
+    backgroundColor: Colors.gold,
+  },
+  overdue: {
+    backgroundColor: '#c87a60',
+  },
+  tentative: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.gold,
+  },
+};
+
+const STATUS_TEXT_STYLES: Record<EventVisualStatus, object> = {
+  past: { color: Colors.silverDim },
+  scheduled: { color: Colors.bg },
+  overdue: { color: Colors.white },
+  tentative: { color: Colors.gold },
+};
 
 // DOM-33: en pantallas angostas entran menos líneas de texto por celda antes
 // de que se vuelva ilegible — se muestra 1 evento + "+N más" en vez de 2 (CA5).
@@ -86,15 +117,23 @@ export function MonthCalendarGrid({ getItemsForDate, onSelectDay }: MonthCalenda
                     {date.getUTCDate()}
                   </Text>
 
-                  {visibleItems.map((item, index) => (
-                    <Text
-                      key={index}
-                      style={[styles.eventLine, !inCurrentMonth && styles.eventLineOutside]}
-                      numberOfLines={1}
-                    >
-                      {item.assetName}
-                    </Text>
-                  ))}
+                  {visibleItems.map((item, index) => {
+                    const status = getEventVisualStatus(item, iso, todayISO);
+                    return (
+                      <Text
+                        key={index}
+                        style={[
+                          styles.eventLine,
+                          STATUS_LINE_STYLES[status],
+                          STATUS_TEXT_STYLES[status],
+                          !inCurrentMonth && styles.eventLineOutside,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {item.assetName}
+                      </Text>
+                    );
+                  })}
 
                   {overflowCount > 0 && <Text style={styles.overflowText}>+{overflowCount} más</Text>}
                 </Pressable>
@@ -180,10 +219,9 @@ const styles = StyleSheet.create({
   eventLine: {
     fontFamily: 'Inter_400Regular',
     fontSize: 10,
-    color: Colors.silverDim,
-    backgroundColor: Colors.border,
     borderRadius: 3,
     paddingHorizontal: 3,
+    paddingVertical: 1,
   },
   eventLineOutside: {
     opacity: 0.5,

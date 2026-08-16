@@ -1,3 +1,4 @@
+import { EventStatus } from '../types';
 import { RecurrenceConfig, calculateNextOccurrence } from './eventNotificationSchedule';
 import { toISODate } from './calendarGrid';
 
@@ -6,6 +7,7 @@ export interface EventActivityRecord {
   date: string;
   assetId: string;
   assetName: string;
+  status: EventStatus;
   config: RecurrenceConfig | null;
 }
 
@@ -14,6 +16,7 @@ export interface DayEventItem {
   eventId: string;
   assetId: string;
   assetName: string;
+  status: EventStatus;
 }
 
 export interface DayOccurrenceItem {
@@ -27,13 +30,20 @@ export type DayItem = DayEventItem | DayOccurrenceItem;
 // DOM-29: para un día puntual, arma la lista que se muestra al tocarlo en el
 // calendario de DOM-28 — misma combinación de fuentes que getMarkedDates
 // (evento registrado ese día / próxima ocurrencia de una recurrencia activa),
-// pero acá cada ítem lleva la identidad necesaria para navegar (CA2/CA3).
+// pero acá cada ítem lleva la identidad necesaria para navegar (CA2/CA3) y,
+// para eventos reales, su status (DOM-35 lo usa para el estilo visual).
 export function getDayItems(dateISO: string, records: EventActivityRecord[]): DayItem[] {
   const items: DayItem[] = [];
 
   for (const record of records) {
     if (toISODate(new Date(record.date)) === dateISO) {
-      items.push({ type: 'event', eventId: record.id, assetId: record.assetId, assetName: record.assetName });
+      items.push({
+        type: 'event',
+        eventId: record.id,
+        assetId: record.assetId,
+        assetName: record.assetName,
+        status: record.status,
+      });
     }
 
     if (record.config) {

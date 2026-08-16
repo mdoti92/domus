@@ -6,6 +6,7 @@ import { Colors } from '../../constants/colors';
 import { MonthCalendarGrid } from '../../components/modules/home/MonthCalendarGrid';
 import { DayActivitySheet } from '../../components/modules/home/DayActivitySheet';
 import { AssetPickerSheet } from '../../components/modules/home/AssetPickerSheet';
+import { TentativeOccurrenceSheet } from '../../components/modules/home/TentativeOccurrenceSheet';
 import { NewEventModal } from '../../components/modules/assets/NewEventModal';
 import { useCalendarActivity } from '../../hooks/useCalendarActivity';
 import { useDueNotifications } from '../../hooks/useDueNotifications';
@@ -30,6 +31,7 @@ export default function HomeScreen() {
   const [assetPickerVisible, setAssetPickerVisible] = useState(false);
   const [newEventAsset, setNewEventAsset] = useState<Asset | null>(null);
   const [newEventDate, setNewEventDate] = useState<string | null>(null);
+  const [tentativeOccurrence, setTentativeOccurrence] = useState<{ assetName: string; date: string } | null>(null);
 
   const selectedDateItems = selectedDate ? getItemsForDate(selectedDate) : [];
 
@@ -39,12 +41,20 @@ export default function HomeScreen() {
   const handleSelectDay = (iso: string) => setSelectedDate(iso);
 
   const handleSelectItem = (item: DayItem) => {
-    setSelectedDate(null);
     if (item.type === 'event') {
+      setSelectedDate(null);
       router.push(`/assets/events/${item.eventId}`);
-    } else {
-      router.push(`/assets/${item.assetId}`);
+      return;
     }
+
+    // DOM-35 CA5: una ocurrencia tentativa no es un evento real todavía, así
+    // que en vez de mandar al detalle del asset (editable) se abre una vista
+    // de solo referencia. selectedDate es el día del sheet que se tocó, que
+    // por construcción coincide con la fecha estimada de esta ocurrencia.
+    if (selectedDate) {
+      setTentativeOccurrence({ assetName: item.assetName, date: selectedDate });
+    }
+    setSelectedDate(null);
   };
 
   const handleAddEvent = () => {
@@ -125,6 +135,13 @@ export default function HomeScreen() {
           initialDate={newEventDate ?? undefined}
         />
       )}
+
+      <TentativeOccurrenceSheet
+        visible={tentativeOccurrence !== null}
+        assetName={tentativeOccurrence?.assetName ?? null}
+        dateISO={tentativeOccurrence?.date ?? null}
+        onClose={() => setTentativeOccurrence(null)}
+      />
     </SafeAreaView>
   );
 }
