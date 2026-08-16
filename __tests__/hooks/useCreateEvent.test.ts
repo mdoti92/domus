@@ -1,12 +1,19 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useCreateEvent, CreateEventInput } from '../../hooks/useCreateEvent';
 import { supabase } from '../../lib/supabase';
+import * as googleCalendarSync from '../../lib/googleCalendarSync';
 
 jest.mock('../../lib/supabase', () => ({
   supabase: {
     from: jest.fn(),
   },
 }));
+
+jest.mock('../../lib/googleCalendarSync', () => ({
+  syncEventToGoogleCalendar: jest.fn().mockResolvedValue(undefined),
+}));
+
+const syncMock = googleCalendarSync.syncEventToGoogleCalendar as jest.Mock;
 
 const insertEventMock = jest.fn();
 const insertValuesMock = jest.fn();
@@ -198,5 +205,35 @@ describe('useCreateEvent', () => {
 
     expect(thrownError).toEqual(dbError);
     expect(result.current.error).toEqual(dbError);
+  });
+
+  it('syncs the new event to Google Calendar after creating it (CA1)', async () => {
+    (supabase.from as jest.Mock)
+      .mockReturnValueOnce(makeEventsChain({ data: { id: 'ev-1' }, error: null }))
+      .mockReturnValueOnce(makeValuesChain({ data: null, error: null }));
+
+    const { result } = renderHook(() => useCreateEvent());
+    await act(async () => { await result.current.createEvent('asset-1', baseInput); });
+
+    expect(syncMock).toHaveBeenCalledWith({ action: 'create', eventId: 'ev-1' });
+  });
+
+  it('still returns the created event when the Google Calendar sync fails (CA3)', async () => {
+    syncMock.mockRejectedValueOnce(new Error('should never happen, but just in case'));
+    (supabase.from as jest.Mock)
+      .mockReturnValueOnce(makeEventsChain({ data: { id: 'ev-1' }, error: null }))
+      .mockReturnValueOnce(makeValuesChain({ data: null, error: null }));
+
+    const { result } = renderHook(() => useCreateEvent());
+
+    let createdEvent: { id: string } | undefined;
+    let thrownError: unknown;
+    await act(async () => {
+      try { createdEvent = await result.current.createEvent('asset-1', baseInput); }
+      catch (e) { thrownError = e; }
+    });
+
+    expect(thrownError).toBeUndefined();
+    expect(createdEvent).toEqual({ id: 'ev-1' });
   });
 });

@@ -1,10 +1,17 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useUpdateEvent, UpdateEventInput } from '../../hooks/useUpdateEvent';
 import { supabase } from '../../lib/supabase';
+import * as googleCalendarSync from '../../lib/googleCalendarSync';
 
 jest.mock('../../lib/supabase', () => ({
   supabase: { from: jest.fn() },
 }));
+
+jest.mock('../../lib/googleCalendarSync', () => ({
+  syncEventToGoogleCalendar: jest.fn().mockResolvedValue(undefined),
+}));
+
+const syncMock = googleCalendarSync.syncEventToGoogleCalendar as jest.Mock;
 
 const baseInput: UpdateEventInput = {
   date: '2026-06-25',
@@ -158,5 +165,42 @@ describe('useUpdateEvent', () => {
 
     expect(thrownError).toEqual(dbError);
     expect(result.current.error).toEqual(dbError);
+  });
+
+  it('syncs the updated event to Google Calendar after saving it (CA2)', async () => {
+    const updateChain = makeUpdateChain({ error: null });
+    const deleteChain = makeDeleteChain({ error: null });
+    const insertChain = makeInsertChain({ error: null });
+
+    (supabase.from as jest.Mock)
+      .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(deleteChain)
+      .mockReturnValueOnce(insertChain);
+
+    const { result } = renderHook(() => useUpdateEvent());
+    await act(async () => { await result.current.updateEvent('event-1', baseInput); });
+
+    expect(syncMock).toHaveBeenCalledWith({ action: 'update', eventId: 'event-1' });
+  });
+
+  it('does not throw when the Google Calendar sync fails (CA3)', async () => {
+    syncMock.mockRejectedValueOnce(new Error('should never happen, but just in case'));
+    const updateChain = makeUpdateChain({ error: null });
+    const deleteChain = makeDeleteChain({ error: null });
+    const insertChain = makeInsertChain({ error: null });
+
+    (supabase.from as jest.Mock)
+      .mockReturnValueOnce(updateChain)
+      .mockReturnValueOnce(deleteChain)
+      .mockReturnValueOnce(insertChain);
+
+    const { result } = renderHook(() => useUpdateEvent());
+    let thrownError: unknown;
+    await act(async () => {
+      try { await result.current.updateEvent('event-1', baseInput); }
+      catch (e) { thrownError = e; }
+    });
+
+    expect(thrownError).toBeUndefined();
   });
 });
