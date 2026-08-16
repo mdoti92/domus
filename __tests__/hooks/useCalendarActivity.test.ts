@@ -21,7 +21,15 @@ describe('useCalendarActivity', () => {
 
   it('marks dates from registered events (CA1)', async () => {
     mockEventsQuery({
-      data: [{ date: '2026-08-20T00:00:00+00:00', event_notification_configs: null }],
+      data: [
+        {
+          id: 'ev-1',
+          date: '2026-08-20T00:00:00+00:00',
+          asset_id: 'asset-1',
+          assets: { name: 'Piscina' },
+          event_notification_configs: null,
+        },
+      ],
       error: null,
     });
 
@@ -35,7 +43,10 @@ describe('useCalendarActivity', () => {
     mockEventsQuery({
       data: [
         {
+          id: 'ev-1',
           date: '2026-08-01T00:00:00+00:00',
+          asset_id: 'asset-1',
+          assets: { name: 'Piscina' },
           event_notification_configs: {
             enabled: true,
             recurrence_type: 'date',
@@ -54,11 +65,14 @@ describe('useCalendarActivity', () => {
     expect(result.current.markedDates.has('2026-09-15')).toBe(true);
   });
 
-  it('normalizes event_notification_configs when Supabase returns it as an array', async () => {
+  it('normalizes assets and event_notification_configs when Supabase returns them as arrays', async () => {
     mockEventsQuery({
       data: [
         {
+          id: 'ev-1',
           date: '2026-08-01T00:00:00+00:00',
+          asset_id: 'asset-1',
+          assets: [{ name: 'Piscina' }],
           event_notification_configs: [
             {
               enabled: true,
@@ -77,6 +91,9 @@ describe('useCalendarActivity', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.markedDates.has('2026-09-15')).toBe(true);
+    expect(result.current.getItemsForDate('2026-08-01')).toEqual([
+      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina' },
+    ]);
   });
 
   it('returns an empty set when there are no events (CA5)', async () => {
@@ -97,5 +114,49 @@ describe('useCalendarActivity', () => {
 
     expect(result.current.error).toEqual(queryError);
     expect(result.current.markedDates.size).toBe(0);
+  });
+
+  describe('getItemsForDate', () => {
+    it('returns the day items for a date with a registered event (DOM-29 CA1)', async () => {
+      mockEventsQuery({
+        data: [
+          {
+            id: 'ev-1',
+            date: '2026-08-20T00:00:00+00:00',
+            asset_id: 'asset-1',
+            assets: { name: 'Piscina' },
+            event_notification_configs: null,
+          },
+        ],
+        error: null,
+      });
+
+      const { result } = renderHook(() => useCalendarActivity());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.getItemsForDate('2026-08-20')).toEqual([
+        { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina' },
+      ]);
+    });
+
+    it('returns an empty list for a date with no activity (DOM-29 CA4)', async () => {
+      mockEventsQuery({
+        data: [
+          {
+            id: 'ev-1',
+            date: '2026-08-20T00:00:00+00:00',
+            asset_id: 'asset-1',
+            assets: { name: 'Piscina' },
+            event_notification_configs: null,
+          },
+        ],
+        error: null,
+      });
+
+      const { result } = renderHook(() => useCalendarActivity());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.getItemsForDate('2026-08-21')).toEqual([]);
+    });
   });
 });

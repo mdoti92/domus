@@ -1,19 +1,38 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { RecurrenceConfig } from '../lib/eventNotificationSchedule';
-import { getMarkedDates, RecurringEventInput } from '../lib/calendarActivity';
+import { getMarkedDates } from '../lib/calendarActivity';
+import { getDayItems, DayItem, EventActivityRecord } from '../lib/calendarDayActivity';
 
-const EVENTS_SELECT = `date, event_notification_configs(
+const EVENTS_SELECT = `id, date, asset_id, assets(name), event_notification_configs(
   enabled, recurrence_type, recurrence_date, recurrence_interval_value, recurrence_interval_unit
 )`;
 
-interface EventActivityRow {
+interface RawEventActivityRow {
+  id: string;
   date: string;
+  asset_id: string;
+  assets: { name: string } | { name: string }[] | null;
   event_notification_configs: RecurrenceConfig | RecurrenceConfig[] | null;
 }
 
+function normalizeRecord(row: RawEventActivityRow): EventActivityRecord {
+  const asset = Array.isArray(row.assets) ? row.assets[0] : row.assets;
+  const config = Array.isArray(row.event_notification_configs)
+    ? row.event_notification_configs[0]
+    : row.event_notification_configs;
+
+  return {
+    id: row.id,
+    date: row.date,
+    assetId: row.asset_id,
+    assetName: asset?.name ?? '',
+    config: config ?? null,
+  };
+}
+
 export function useCalendarActivity() {
-  const [markedDates, setMarkedDates] = useState<Set<string>>(new Set());
+  const [records, setRecords] = useState<EventActivityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
@@ -24,23 +43,13 @@ export function useCalendarActivity() {
 
     if (fetchError) {
       setError(fetchError);
-      setMarkedDates(new Set());
+      setRecords([]);
       setLoading(false);
       return;
     }
 
-    const rows = (data ?? []) as unknown as EventActivityRow[];
-    const eventDates = rows.map((row) => row.date);
-    const recurringEvents: RecurringEventInput[] = rows
-      .map((row) => {
-        const config = Array.isArray(row.event_notification_configs)
-          ? row.event_notification_configs[0]
-          : row.event_notification_configs;
-        return config ? { date: row.date, config } : null;
-      })
-      .filter((entry): entry is RecurringEventInput => entry !== null);
-
-    setMarkedDates(getMarkedDates(eventDates, recurringEvents));
+    const rows = (data ?? []) as unknown as RawEventActivityRow[];
+    setRecords(rows.map(normalizeRecord));
     setError(null);
     setLoading(false);
   }, []);
@@ -49,5 +58,15 @@ export function useCalendarActivity() {
     fetchActivity();
   }, [fetchActivity]);
 
-  return { markedDates, loading, error, refetch: fetchActivity };
+  const markedDates = useMemo(() => {
+    const eventDates = records.map((r) => r.date);
+    const recurringEvents = records
+      .filter((r): r is EventActivityRecord & { config: RecurrenceConfig } => r.config !== null)
+      .map((r) => ({ date: r.date, config: r.config }));
+    return getMarkedDates(eventDates, recurringEvents);
+  }, [records]);
+
+  const getItemsForDate = useCallback((iso: string): DayItem[] => getDayItems(iso, records), [records]);
+
+  return { markedDates, getItemsForDate, loading, error, refetch: fetchActivity };
 }

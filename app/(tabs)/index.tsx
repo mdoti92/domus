@@ -1,17 +1,36 @@
+import { useState } from 'react';
 import { View, ScrollView, Text, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Calendar } from '../../components/ui/Calendar';
+import { DayActivitySheet } from '../../components/modules/home/DayActivitySheet';
 import { useCalendarActivity } from '../../hooks/useCalendarActivity';
 import { useDueNotifications } from '../../hooks/useDueNotifications';
-
-// DOM-29 va a conectar tocar un día con algo (ver eventos de esa fecha).
-// Por ahora no hace nada, está fuera de alcance de DOM-28.
-function noop(): void {}
+import { DayItem } from '../../lib/calendarDayActivity';
 
 export default function HomeScreen() {
-  const { markedDates, loading: activityLoading, error: activityError } = useCalendarActivity();
+  const router = useRouter();
+  const { markedDates, getItemsForDate, loading: activityLoading, error: activityError } = useCalendarActivity();
   const { items: dueItems } = useDueNotifications();
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const selectedDateItems = selectedDate ? getItemsForDate(selectedDate) : [];
+
+  const handleSelectDay = (iso: string) => {
+    // CA4: un día sin actividad no abre nada.
+    if (getItemsForDate(iso).length === 0) return;
+    setSelectedDate(iso);
+  };
+
+  const handleSelectItem = (item: DayItem) => {
+    setSelectedDate(null);
+    if (item.type === 'event') {
+      router.push(`/assets/events/${item.eventId}`);
+    } else {
+      router.push(`/assets/${item.assetId}`);
+    }
+  };
 
   if (activityLoading) {
     return (
@@ -41,8 +60,16 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <Calendar value={null} onSelect={noop} markedDates={markedDates} />
+        <Calendar value={null} onSelect={handleSelectDay} markedDates={markedDates} />
       </ScrollView>
+
+      <DayActivitySheet
+        visible={selectedDate !== null}
+        date={selectedDate}
+        items={selectedDateItems}
+        onClose={() => setSelectedDate(null)}
+        onSelectItem={handleSelectItem}
+      />
     </SafeAreaView>
   );
 }
