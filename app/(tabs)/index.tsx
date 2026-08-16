@@ -3,7 +3,7 @@ import { View, ScrollView, Text, StyleSheet, ActivityIndicator, SafeAreaView } f
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
-import { Calendar } from '../../components/ui/Calendar';
+import { MonthCalendarGrid } from '../../components/modules/home/MonthCalendarGrid';
 import { DayActivitySheet } from '../../components/modules/home/DayActivitySheet';
 import { useCalendarActivity } from '../../hooks/useCalendarActivity';
 import { useDueNotifications } from '../../hooks/useDueNotifications';
@@ -11,7 +11,7 @@ import { DayItem } from '../../lib/calendarDayActivity';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { markedDates, getItemsForDate, loading: activityLoading, error: activityError } = useCalendarActivity();
+  const { getItemsForDate, loading: activityLoading, error: activityError } = useCalendarActivity();
   const { items: dueItems } = useDueNotifications();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -60,7 +60,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <Calendar value={null} onSelect={handleSelectDay} markedDates={markedDates} />
+        <MonthCalendarGrid getItemsForDate={getItemsForDate} onSelectDay={handleSelectDay} />
       </ScrollView>
 
       <DayActivitySheet
