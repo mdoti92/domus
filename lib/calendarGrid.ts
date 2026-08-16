@@ -3,6 +3,13 @@ export interface CalendarDay {
   inCurrentMonth: boolean;
 }
 
+export const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+export const WEEKDAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKS_IN_GRID = 6;
 const DAYS_IN_WEEK = 7;

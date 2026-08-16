@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { RecurrenceConfig } from '../lib/eventNotificationSchedule';
-import { getMarkedDates } from '../lib/calendarActivity';
 import { getDayItems, DayItem, EventActivityRecord } from '../lib/calendarDayActivity';
 
 const EVENTS_SELECT = `id, date, asset_id, assets(name), event_notification_configs(
@@ -58,15 +57,7 @@ export function useCalendarActivity() {
     fetchActivity();
   }, [fetchActivity]);
 
-  const markedDates = useMemo(() => {
-    const eventDates = records.map((r) => r.date);
-    const recurringEvents = records
-      .filter((r): r is EventActivityRecord & { config: RecurrenceConfig } => r.config !== null)
-      .map((r) => ({ date: r.date, config: r.config }));
-    return getMarkedDates(eventDates, recurringEvents);
-  }, [records]);
-
   const getItemsForDate = useCallback((iso: string): DayItem[] => getDayItems(iso, records), [records]);
 
-  return { markedDates, getItemsForDate, loading, error, refetch: fetchActivity };
+  return { getItemsForDate, loading, error, refetch: fetchActivity };
 }

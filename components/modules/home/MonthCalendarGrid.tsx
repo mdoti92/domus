@@ -1,25 +1,24 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
-import { getCalendarMonthGrid, chunkIntoWeeks, toISODate, MONTH_NAMES, WEEKDAY_LABELS } from '../../lib/calendarGrid';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { Colors } from '../../../constants/colors';
+import { getCalendarMonthGrid, chunkIntoWeeks, toISODate, MONTH_NAMES, WEEKDAY_LABELS } from '../../../lib/calendarGrid';
+import { DayItem } from '../../../lib/calendarDayActivity';
+import { getCellPreview } from '../../../lib/calendarCellPreview';
 
-interface CalendarProps {
-  value: string | null;
-  onSelect: (isoDate: string) => void;
+interface MonthCalendarGridProps {
+  getItemsForDate: (iso: string) => DayItem[];
+  onSelectDay: (iso: string) => void;
 }
 
-function parseViewedDate(value: string | null): Date {
-  if (value) {
-    const parsed = new Date(value.includes('T') ? value : `${value}T00:00:00Z`);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  return new Date();
-}
+// DOM-33: en pantallas angostas entran menos líneas de texto por celda antes
+// de que se vuelva ilegible — se muestra 1 evento + "+N más" en vez de 2 (CA5).
+const NARROW_SCREEN_BREAKPOINT = 400;
 
-export function Calendar({ value, onSelect }: CalendarProps) {
-  const initial = parseViewedDate(value);
-  const [viewedYear, setViewedYear] = useState(initial.getUTCFullYear());
-  const [viewedMonth, setViewedMonth] = useState(initial.getUTCMonth());
+export function MonthCalendarGrid({ getItemsForDate, onSelectDay }: MonthCalendarGridProps) {
+  const [viewedYear, setViewedYear] = useState(() => new Date().getUTCFullYear());
+  const [viewedMonth, setViewedMonth] = useState(() => new Date().getUTCMonth());
+  const { width } = useWindowDimensions();
+  const maxVisible = width < NARROW_SCREEN_BREAKPOINT ? 1 : 2;
 
   const goToPreviousMonth = () => {
     if (viewedMonth === 0) {
@@ -40,7 +39,6 @@ export function Calendar({ value, onSelect }: CalendarProps) {
   };
 
   const weeks = chunkIntoWeeks(getCalendarMonthGrid(viewedYear, viewedMonth));
-  const selectedISO = value ? toISODate(parseViewedDate(value)) : null;
   const todayISO = toISODate(new Date());
 
   return (
@@ -68,25 +66,37 @@ export function Calendar({ value, onSelect }: CalendarProps) {
           <View key={weekIndex} style={styles.week}>
             {week.map(({ date, inCurrentMonth }) => {
               const iso = toISODate(date);
-              const isSelected = iso === selectedISO;
               const isToday = iso === todayISO;
+              const { visibleItems, overflowCount } = getCellPreview(getItemsForDate(iso), maxVisible);
+
               return (
                 <Pressable
                   key={iso}
-                  onPress={() => onSelect(iso)}
-                  style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                  onPress={() => onSelectDay(iso)}
+                  style={styles.dayCell}
                   accessibilityLabel={iso}
                 >
                   <Text
                     style={[
-                      styles.dayText,
-                      !inCurrentMonth && styles.dayTextOutside,
-                      isSelected && styles.dayTextSelected,
-                      isToday && !isSelected && styles.dayTextToday,
+                      styles.dayNumber,
+                      !inCurrentMonth && styles.dayNumberOutside,
+                      isToday && styles.dayNumberToday,
                     ]}
                   >
                     {date.getUTCDate()}
                   </Text>
+
+                  {visibleItems.map((item, index) => (
+                    <Text
+                      key={index}
+                      style={[styles.eventLine, !inCurrentMonth && styles.eventLineOutside]}
+                      numberOfLines={1}
+                    >
+                      {item.assetName}
+                    </Text>
+                  ))}
+
+                  {overflowCount > 0 && <Text style={styles.overflowText}>+{overflowCount} más</Text>}
                 </Pressable>
               );
             })}
@@ -96,8 +106,6 @@ export function Calendar({ value, onSelect }: CalendarProps) {
     </View>
   );
 }
-
-const CELL_SIZE = 36;
 
 const styles = StyleSheet.create({
   container: {
@@ -134,10 +142,9 @@ const styles = StyleSheet.create({
   },
   weekdayRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   weekdayLabel: {
-    width: CELL_SIZE,
+    flex: 1,
     textAlign: 'center',
     fontFamily: 'Inter_500Medium',
     fontSize: 11,
@@ -145,36 +152,45 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'column',
+    gap: 2,
   },
   week: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 2,
   },
   dayCell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: CELL_SIZE / 2,
-    marginBottom: 4,
+    flex: 1,
+    minHeight: 64,
+    borderRadius: 8,
+    backgroundColor: Colors.surface2,
+    padding: 4,
+    gap: 1,
   },
-  dayCellSelected: {
-    backgroundColor: Colors.gold,
-  },
-  dayText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
+  dayNumber: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
     color: Colors.silver,
   },
-  dayTextOutside: {
+  dayNumberOutside: {
     color: Colors.silverMuted,
   },
-  dayTextSelected: {
-    color: Colors.bg,
-    fontFamily: 'Inter_500Medium',
-  },
-  dayTextToday: {
+  dayNumberToday: {
     color: Colors.gold,
-    fontFamily: 'Inter_500Medium',
+  },
+  eventLine: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10,
+    color: Colors.silverDim,
+    backgroundColor: Colors.border,
+    borderRadius: 3,
+    paddingHorizontal: 3,
+  },
+  eventLineOutside: {
+    opacity: 0.5,
+  },
+  overflowText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10,
+    color: Colors.silverMuted,
   },
 });
