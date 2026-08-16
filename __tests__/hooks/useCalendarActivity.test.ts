@@ -19,13 +19,14 @@ function mockEventsQuery(result: { data: unknown; error: unknown }) {
 describe('useCalendarActivity', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('returns the day items for a date with a registered event (CA1)', async () => {
+  it('returns the day items for a date with a registered event, including its status (CA1)', async () => {
     mockEventsQuery({
       data: [
         {
           id: 'ev-1',
           date: '2026-08-20T00:00:00+00:00',
           asset_id: 'asset-1',
+          status: 'pending',
           assets: { name: 'Piscina' },
           event_notification_configs: null,
         },
@@ -37,7 +38,7 @@ describe('useCalendarActivity', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.getItemsForDate('2026-08-20')).toEqual([
-      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina' },
+      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', status: 'pending' },
     ]);
   });
 
@@ -48,6 +49,7 @@ describe('useCalendarActivity', () => {
           id: 'ev-1',
           date: '2026-08-01T00:00:00+00:00',
           asset_id: 'asset-1',
+          status: 'pending',
           assets: { name: 'Piscina' },
           event_notification_configs: {
             enabled: true,
@@ -76,6 +78,7 @@ describe('useCalendarActivity', () => {
           id: 'ev-1',
           date: '2026-08-01T00:00:00+00:00',
           asset_id: 'asset-1',
+          status: 'done',
           assets: [{ name: 'Piscina' }],
           event_notification_configs: [
             {
@@ -95,7 +98,7 @@ describe('useCalendarActivity', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.getItemsForDate('2026-08-01')).toEqual([
-      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina' },
+      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', status: 'done' },
     ]);
     expect(result.current.getItemsForDate('2026-09-15')).toEqual([
       { type: 'next_occurrence', assetId: 'asset-1', assetName: 'Piscina' },
@@ -109,6 +112,7 @@ describe('useCalendarActivity', () => {
           id: 'ev-1',
           date: '2026-08-20T00:00:00+00:00',
           asset_id: 'asset-1',
+          status: 'pending',
           assets: { name: 'Piscina' },
           event_notification_configs: null,
         },
