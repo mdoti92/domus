@@ -1,6 +1,7 @@
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
+import { Button } from '../../ui/Button';
 import { DayItem } from '../../../lib/calendarDayActivity';
 
 interface DayActivitySheetProps {
@@ -9,6 +10,7 @@ interface DayActivitySheetProps {
   items: DayItem[];
   onClose: () => void;
   onSelectItem: (item: DayItem) => void;
+  onAddEvent: () => void;
 }
 
 const MONTH_NAMES = [
@@ -21,7 +23,7 @@ function formatDayTitle(iso: string): string {
   return `${day} de ${MONTH_NAMES[month - 1]} ${year}`;
 }
 
-export function DayActivitySheet({ visible, date, items, onClose, onSelectItem }: DayActivitySheetProps) {
+export function DayActivitySheet({ visible, date, items, onClose, onSelectItem, onAddEvent }: DayActivitySheetProps) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
@@ -33,27 +35,33 @@ export function DayActivitySheet({ visible, date, items, onClose, onSelectItem }
             </Pressable>
           </View>
 
-          <ScrollView style={styles.list}>
-            {items.map((item, index) => (
-              <Pressable
-                key={`${item.type}-${item.assetId}-${index}`}
-                style={styles.item}
-                onPress={() => onSelectItem(item)}
-              >
-                <Ionicons
-                  name={item.type === 'event' ? 'checkmark-circle-outline' : 'time-outline'}
-                  size={18}
-                  color={Colors.gold}
-                />
-                <View style={styles.itemText}>
-                  <Text style={styles.itemAsset}>{item.assetName}</Text>
-                  <Text style={styles.itemMeta}>
-                    {item.type === 'event' ? 'Evento registrado' : 'Próxima ocurrencia'}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
+          {items.length > 0 && (
+            <ScrollView style={styles.list}>
+              {items.map((item, index) => (
+                <Pressable
+                  key={`${item.type}-${item.assetId}-${index}`}
+                  style={styles.item}
+                  onPress={() => onSelectItem(item)}
+                >
+                  <Ionicons
+                    name={item.type === 'event' ? 'checkmark-circle-outline' : 'time-outline'}
+                    size={18}
+                    color={Colors.gold}
+                  />
+                  <View style={styles.itemText}>
+                    <Text style={styles.itemAsset}>{item.assetName}</Text>
+                    <Text style={styles.itemMeta}>
+                      {item.type === 'event' ? 'Evento registrado' : 'Próxima ocurrencia'}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+
+          <View style={styles.footer}>
+            <Button label="+ Agregar evento" onPress={onAddEvent} variant="ghost" />
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -91,6 +99,9 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   closeText: { fontSize: 16, color: Colors.silverDim },
+  footer: {
+    padding: 16,
+  },
   list: { paddingVertical: 4 },
   item: {
     flexDirection: 'row',
