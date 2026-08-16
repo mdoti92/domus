@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -32,6 +32,7 @@ interface NewEventModalProps {
   parameterDefinitions: ParameterDefinition[];
   assetName: string;
   householdMembers: HouseholdMember[];
+  initialDate?: string;
 }
 
 function todayISO(): string {
@@ -45,16 +46,24 @@ export function NewEventModal({
   parameterDefinitions,
   assetName,
   householdMembers,
+  initialDate,
 }: NewEventModalProps) {
-  const [date, setDate] = useState(todayISO);
+  const [date, setDate] = useState(initialDate ?? todayISO());
   const [notes, setNotes] = useState('');
   const [paramValues, setParamValues] = useState<Record<string, string | boolean>>({});
   const [notification, setNotification] = useState<NotificationFormState>(createDefaultNotificationFormState);
   const [dateError, setDateError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
 
+  // El modal no se desmonta al cerrar (visible solo lo oculta), así que si
+  // initialDate cambia entre una apertura y otra (ej. se tocó otro día del
+  // calendario en DOM-34) hay que releer la fecha al volver a abrirse.
+  useEffect(() => {
+    if (visible) setDate(initialDate ?? todayISO());
+  }, [visible, initialDate]);
+
   const reset = () => {
-    setDate(todayISO());
+    setDate(initialDate ?? todayISO());
     setNotes('');
     setParamValues({});
     setNotification(createDefaultNotificationFormState());

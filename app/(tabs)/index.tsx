@@ -5,23 +5,38 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { MonthCalendarGrid } from '../../components/modules/home/MonthCalendarGrid';
 import { DayActivitySheet } from '../../components/modules/home/DayActivitySheet';
+import { AssetPickerSheet } from '../../components/modules/home/AssetPickerSheet';
+import { NewEventModal } from '../../components/modules/assets/NewEventModal';
 import { useCalendarActivity } from '../../hooks/useCalendarActivity';
 import { useDueNotifications } from '../../hooks/useDueNotifications';
+import { useAssets } from '../../hooks/useAssets';
+import { useCreateEvent, CreateEventInput } from '../../hooks/useCreateEvent';
+import { useHouseholdMembers } from '../../hooks/useHouseholdMembers';
+import { useSaveEventNotificationConfig } from '../../hooks/useSaveEventNotificationConfig';
 import { DayItem } from '../../lib/calendarDayActivity';
+import { Asset } from '../../types';
+import { NotificationFormState, toSaveEventNotificationConfigInput } from '../../lib/notificationFormState';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { getItemsForDate, loading: activityLoading, error: activityError } = useCalendarActivity();
+  const { getItemsForDate, loading: activityLoading, error: activityError, refetch: refetchActivity } = useCalendarActivity();
   const { items: dueItems } = useDueNotifications();
+  const { assets } = useAssets();
+  const { createEvent } = useCreateEvent();
+  const { members: householdMembers } = useHouseholdMembers();
+  const { saveConfig } = useSaveEventNotificationConfig();
+
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [assetPickerVisible, setAssetPickerVisible] = useState(false);
+  const [newEventAsset, setNewEventAsset] = useState<Asset | null>(null);
+  const [newEventDate, setNewEventDate] = useState<string | null>(null);
 
   const selectedDateItems = selectedDate ? getItemsForDate(selectedDate) : [];
 
-  const handleSelectDay = (iso: string) => {
-    // CA4: un día sin actividad no abre nada.
-    if (getItemsForDate(iso).length === 0) return;
-    setSelectedDate(iso);
-  };
+  // DOM-34 CA1: tocar cualquier día abre el sheet (con o sin actividad), para
+  // que siempre esté ahí la opción de "Agregar evento" — reemplaza el
+  // early-return de DOM-29 que solo abría días con indicador.
+  const handleSelectDay = (iso: string) => setSelectedDate(iso);
 
   const handleSelectItem = (item: DayItem) => {
     setSelectedDate(null);
@@ -30,6 +45,26 @@ export default function HomeScreen() {
     } else {
       router.push(`/assets/${item.assetId}`);
     }
+  };
+
+  const handleAddEvent = () => {
+    setNewEventDate(selectedDate);
+    setSelectedDate(null);
+    setAssetPickerVisible(true);
+  };
+
+  const handleSelectAsset = (asset: Asset) => {
+    setAssetPickerVisible(false);
+    setNewEventAsset(asset);
+  };
+
+  const handleSubmitEvent = async (input: CreateEventInput, notification: NotificationFormState) => {
+    if (!newEventAsset) return;
+    const createdEvent = await createEvent(newEventAsset.id, input);
+    if (notification.enabled) {
+      await saveConfig(createdEvent.id, toSaveEventNotificationConfigInput(notification));
+    }
+    await refetchActivity();
   };
 
   if (activityLoading) {
@@ -69,7 +104,27 @@ export default function HomeScreen() {
         items={selectedDateItems}
         onClose={() => setSelectedDate(null)}
         onSelectItem={handleSelectItem}
+        onAddEvent={handleAddEvent}
       />
+
+      <AssetPickerSheet
+        visible={assetPickerVisible}
+        assets={assets}
+        onClose={() => setAssetPickerVisible(false)}
+        onSelectAsset={handleSelectAsset}
+      />
+
+      {newEventAsset && (
+        <NewEventModal
+          visible={newEventAsset !== null}
+          onClose={() => setNewEventAsset(null)}
+          onSubmit={handleSubmitEvent}
+          parameterDefinitions={newEventAsset.parameter_definitions}
+          assetName={newEventAsset.name}
+          householdMembers={householdMembers}
+          initialDate={newEventDate ?? undefined}
+        />
+      )}
     </SafeAreaView>
   );
 }
