@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { EventStatus, ParameterType } from '../types';
+import { syncEventToGoogleCalendar } from '../lib/googleCalendarSync';
 
 export interface UpdateEventInput {
   date: string;
@@ -41,6 +42,11 @@ export function useUpdateEvent() {
           .insert(rows);
         if (insertError) throw insertError;
       }
+
+      // best-effort: syncEventToGoogleCalendar ya nunca rechaza (ver su propio
+      // try/catch), el .catch acá es una red de seguridad extra porque este
+      // paso jamás debe poder tirar abajo la actualización del evento (CA3).
+      await syncEventToGoogleCalendar({ action: 'update', eventId }).catch(() => {});
     } catch (err) {
       setError(err);
       throw err;

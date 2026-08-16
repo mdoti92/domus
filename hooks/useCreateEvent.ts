@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { ParameterType } from '../types';
+import { syncEventToGoogleCalendar } from '../lib/googleCalendarSync';
 
 export interface ParameterValueInput {
   name: string;
@@ -47,6 +48,11 @@ export function useCreateEvent() {
 
         if (valError) throw valError;
       }
+
+      // best-effort: syncEventToGoogleCalendar ya nunca rechaza (ver su propio
+      // try/catch), el .catch acá es una red de seguridad extra porque este
+      // paso jamás debe poder tirar abajo la creación del evento (CA3).
+      await syncEventToGoogleCalendar({ action: 'create', eventId: createdEvent.id }).catch(() => {});
 
       return createdEvent;
     } catch (err) {
