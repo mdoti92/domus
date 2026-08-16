@@ -9,10 +9,19 @@ import {
 } from '@expo-google-fonts/cormorant-garamond';
 import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../hooks/useAuth';
 import { useRegisterPushToken } from '../hooks/useRegisterPushToken';
 
 SplashScreen.preventAutoHideAsync();
+
+// DOM-30: el login con Google abre el consentimiento en una pestaña/popup
+// aparte (WebBrowser.openAuthSessionAsync). Sin esta llamada, esa pestaña no
+// sabe que es una sesión de auth: al volver del redirect solo carga la app de
+// cero ahí adentro y nunca se cierra ni le avisa a la ventana original. Tiene
+// que ejecutarse apenas se carga el módulo (afuera del componente) para que
+// corra también dentro del popup.
+WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
