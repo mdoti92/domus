@@ -12,15 +12,18 @@ const CALENDARS_ENDPOINT = 'https://www.googleapis.com/calendar/v3/calendars';
 const DOMUS_CALENDAR_SUMMARY = 'Domus';
 const STATE_MAX_AGE_MS = 10 * 60 * 1000;
 
-function htmlPage(title: string, message: string): Response {
-  const body = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head>
-<body style="font-family: sans-serif; background:#0d1a0f; color:#c8d4c0; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;">
-  <div style="text-align:center; max-width:420px; padding:24px;">
-    <h1 style="color:#c8b560; font-size:22px;">${title}</h1>
-    <p>${message}</p>
-  </div>
-</body></html>`;
-  return new Response(body, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+// Las Edge Functions de Supabase no sirven HTML: cualquier GET que devuelva
+// text/html se reescribe a text/plain a nivel plataforma (documentado en
+// https://supabase.com/docs/guides/functions/development-tips), y esa
+// reescritura no preserva el charset declarado -- el browser termina
+// adivinando la codificación y mangla tildes/¡/¿. Por eso esta página de
+// resultado es texto plano sin acentos: así el mensaje se ve bien sin
+// depender de qué encoding adivine el browser.
+function textPage(title: string, message: string): Response {
+  return new Response(`${title}\n\n${message}`, {
+    status: 200,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
 }
 
 function decodeIdTokenEmail(idToken: string | undefined): string | null {
@@ -41,16 +44,16 @@ Deno.serve(async (req) => {
   const oauthError = url.searchParams.get('error');
 
   if (oauthError) {
-    return htmlPage(
-      'Conexión cancelada',
-      'No se completó la autorización con Google. Podés volver a intentarlo desde Ajustes en Domus.'
+    return textPage(
+      'Conexion cancelada',
+      'No se completo la autorizacion con Google. Podes volver a intentarlo desde Ajustes en Domus.'
     );
   }
 
   if (!code || !state) {
-    return htmlPage(
-      'Enlace inválido',
-      'Falta información en el enlace de autorización. Volvé a intentarlo desde Ajustes en Domus.'
+    return textPage(
+      'Enlace invalido',
+      'Falta informacion en el enlace de autorizacion. Volve a intentarlo desde Ajustes en Domus.'
     );
   }
 
@@ -61,9 +64,9 @@ Deno.serve(async (req) => {
 
   if (!clientId || !clientSecret) {
     console.error('google-calendar-oauth-callback: missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET secrets');
-    return htmlPage(
-      'Falta configuración',
-      'GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET no están configurados en el proyecto de Supabase.'
+    return textPage(
+      'Falta configuracion',
+      'GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET no estan configurados en el proyecto de Supabase.'
     );
   }
 
@@ -77,7 +80,7 @@ Deno.serve(async (req) => {
 
   if (fetchError) {
     console.error('google-calendar-oauth-callback: failed to load pending state', fetchError);
-    return htmlPage('Error interno', 'No se pudo validar la conexión. Intentá de nuevo desde Ajustes en Domus.');
+    return textPage('Error interno', 'No se pudo validar la conexion. Intenta de nuevo desde Ajustes en Domus.');
   }
 
   const stateAge = connection?.pending_oauth_state_created_at
@@ -85,7 +88,7 @@ Deno.serve(async (req) => {
     : Infinity;
 
   if (!connection || connection.pending_oauth_state !== state || stateAge > STATE_MAX_AGE_MS) {
-    return htmlPage('Enlace inválido o expirado', 'Iniciá la conexión de nuevo desde Ajustes en Domus.');
+    return textPage('Enlace invalido o expirado', 'Inicia la conexion de nuevo desde Ajustes en Domus.');
   }
 
   const redirectUri = `${supabaseUrl}/functions/v1/google-calendar-oauth-callback`;
@@ -105,7 +108,7 @@ Deno.serve(async (req) => {
 
   if (!tokenResp.ok || !tokenData.access_token) {
     console.error('google-calendar-oauth-callback: token exchange failed', tokenData);
-    return htmlPage('No se pudo conectar', 'Google rechazó la autorización. Intentá de nuevo desde Ajustes en Domus.');
+    return textPage('No se pudo conectar', 'Google rechazo la autorizacion. Intenta de nuevo desde Ajustes en Domus.');
   }
 
   const accessToken: string = tokenData.access_token;
@@ -135,9 +138,9 @@ Deno.serve(async (req) => {
     const createData = await createResp.json();
     if (!createResp.ok) {
       console.error('google-calendar-oauth-callback: failed to create calendar', createData);
-      return htmlPage(
+      return textPage(
         'Conectado, con un problema',
-        'La cuenta se conectó pero no se pudo crear el calendario "Domus". Reintentá desde Ajustes en Domus.'
+        'La cuenta se conecto pero no se pudo crear el calendario "Domus". Reintenta desde Ajustes en Domus.'
       );
     }
     calendarId = createData.id;
@@ -160,8 +163,8 @@ Deno.serve(async (req) => {
 
   if (saveError) {
     console.error('google-calendar-oauth-callback: failed to persist connection', saveError);
-    return htmlPage('Error interno', 'La cuenta se conectó pero no se pudo guardar. Reintentá desde Ajustes en Domus.');
+    return textPage('Error interno', 'La cuenta se conecto pero no se pudo guardar. Reintenta desde Ajustes en Domus.');
   }
 
-  return htmlPage('¡Cuenta conectada!', 'Ya podés volver a Domus. El calendario "Domus" está listo para compartir.');
+  return textPage('Cuenta conectada!', 'Ya podes volver a Domus. El calendario "Domus" esta listo para compartir.');
 });
