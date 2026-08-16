@@ -1,4 +1,4 @@
-import { getCalendarMonthGrid, chunkIntoWeeks } from '../../lib/calendarGrid';
+import { getCalendarMonthGrid, chunkIntoWeeks, toISODate } from '../../lib/calendarGrid';
 
 describe('getCalendarMonthGrid', () => {
   it('returns exactly 42 days (6 full weeks)', () => {
@@ -66,5 +66,15 @@ describe('chunkIntoWeeks', () => {
     for (const week of chunkIntoWeeks(grid)) {
       expect(week[0].date.getUTCDay()).toBe(1);
     }
+  });
+});
+
+describe('toISODate', () => {
+  it('formats a UTC date as YYYY-MM-DD', () => {
+    expect(toISODate(new Date(Date.UTC(2026, 7, 5)))).toBe('2026-08-05');
+  });
+
+  it('pads single-digit months and days', () => {
+    expect(toISODate(new Date(Date.UTC(2026, 0, 1)))).toBe('2026-01-01');
   });
 });

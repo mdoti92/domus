@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
-import { getCalendarMonthGrid, chunkIntoWeeks } from '../../lib/calendarGrid';
+import { getCalendarMonthGrid, chunkIntoWeeks, toISODate } from '../../lib/calendarGrid';
 
 interface CalendarProps {
   value: string | null;
   onSelect: (isoDate: string) => void;
+  markedDates?: Set<string>;
 }
 
 const MONTH_NAMES = [
@@ -15,10 +16,6 @@ const MONTH_NAMES = [
 
 const WEEKDAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-function toISODate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
 function parseViewedDate(value: string | null): Date {
   if (value) {
     const parsed = new Date(value.includes('T') ? value : `${value}T00:00:00Z`);
@@ -27,7 +24,7 @@ function parseViewedDate(value: string | null): Date {
   return new Date();
 }
 
-export function Calendar({ value, onSelect }: CalendarProps) {
+export function Calendar({ value, onSelect, markedDates }: CalendarProps) {
   const initial = parseViewedDate(value);
   const [viewedYear, setViewedYear] = useState(initial.getUTCFullYear());
   const [viewedMonth, setViewedMonth] = useState(initial.getUTCMonth());
@@ -81,6 +78,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
               const iso = toISODate(date);
               const isSelected = iso === selectedISO;
               const isToday = iso === todayISO;
+              const isMarked = markedDates?.has(iso) ?? false;
               return (
                 <Pressable
                   key={iso}
@@ -98,6 +96,12 @@ export function Calendar({ value, onSelect }: CalendarProps) {
                   >
                     {date.getUTCDate()}
                   </Text>
+                  {isMarked && (
+                    <View
+                      style={[styles.marker, isSelected && styles.markerSelected]}
+                      accessibilityLabel={`${iso}-con-actividad`}
+                    />
+                  )}
                 </Pressable>
               );
             })}
@@ -168,6 +172,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: CELL_SIZE / 2,
     marginBottom: 4,
+    position: 'relative',
+  },
+  marker: {
+    position: 'absolute',
+    bottom: 5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.gold,
+  },
+  markerSelected: {
+    backgroundColor: Colors.bg,
   },
   dayCellSelected: {
     backgroundColor: Colors.gold,
