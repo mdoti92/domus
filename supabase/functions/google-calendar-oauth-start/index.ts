@@ -9,6 +9,21 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar';
 
+// La llama supabase.functions.invoke() desde el browser (app web), que manda
+// un preflight OPTIONS por el header Authorization. Sin estos headers Chrome
+// bloquea la respuesta antes de que la app la vea (CORS).
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+  });
+}
+
 function buildGoogleAuthUrl(clientId: string, redirectUri: string, state: string): string {
   const params = new URLSearchParams({
     client_id: clientId,
@@ -25,17 +40,18 @@ function buildGoogleAuthUrl(clientId: string, redirectUri: string, state: string
   return `${GOOGLE_AUTH_ENDPOINT}?${params.toString()}`;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: CORS_HEADERS });
+  }
+
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
   if (!clientId) {
     console.error('google-calendar-oauth-start: missing GOOGLE_CLIENT_ID secret');
-    return new Response(
-      JSON.stringify({ error: 'Falta configurar el secreto GOOGLE_CLIENT_ID en el proyecto de Supabase.' }),
-      { status: 500 }
-    );
+    return jsonResponse({ error: 'Falta configurar el secreto GOOGLE_CLIENT_ID en el proyecto de Supabase.' }, 500);
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -53,13 +69,10 @@ Deno.serve(async () => {
 
   if (error) {
     console.error('google-calendar-oauth-start: failed to store oauth state', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return jsonResponse({ error: error.message }, 500);
   }
 
   const authUrl = buildGoogleAuthUrl(clientId, redirectUri, state);
 
-  return new Response(JSON.stringify({ authUrl }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return jsonResponse({ authUrl }, 200);
 });

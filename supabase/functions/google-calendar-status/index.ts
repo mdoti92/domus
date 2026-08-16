@@ -13,6 +13,21 @@ const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 // Functions corren en un runtime Deno separado del bundle de la app).
 const EXPIRY_BUFFER_MS = 60_000;
 
+// La llama supabase.functions.invoke() desde el browser (app web), que manda
+// un preflight OPTIONS por el header Authorization. Sin estos headers Chrome
+// bloquea la respuesta antes de que la app la vea (CORS).
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+  });
+}
+
 function isTokenExpired(expiresAt: string | null, now: Date): boolean {
   if (!expiresAt) return true;
   const expiry = new Date(expiresAt).getTime();
@@ -20,7 +35,11 @@ function isTokenExpired(expiresAt: string | null, now: Date): boolean {
   return expiry - EXPIRY_BUFFER_MS <= now.getTime();
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: CORS_HEADERS });
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
@@ -35,13 +54,13 @@ Deno.serve(async () => {
 
   if (error) {
     console.error('google-calendar-status: failed to load connection', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return jsonResponse({ error: error.message }, 500);
   }
 
   if (!connection || connection.status === 'not_connected' || !connection.refresh_token) {
-    return new Response(
-      JSON.stringify({ status: 'not_connected', googleAccountEmail: null, calendarSummary: null, updatedAt: null }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    return jsonResponse(
+      { status: 'not_connected', googleAccountEmail: null, calendarSummary: null, updatedAt: null },
+      200
     );
   }
 
@@ -78,13 +97,13 @@ Deno.serve(async () => {
     }
   }
 
-  return new Response(
-    JSON.stringify({
+  return jsonResponse(
+    {
       status,
       googleAccountEmail: connection.google_account_email,
       calendarSummary: connection.calendar_summary,
       updatedAt: connection.updated_at,
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
+    },
+    200
   );
 });
