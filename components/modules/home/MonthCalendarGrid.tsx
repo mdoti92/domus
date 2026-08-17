@@ -116,7 +116,7 @@ export function MonthCalendarGrid({ getItemsForDate, onSelectDay }: MonthCalenda
                 <Pressable
                   key={iso}
                   onPress={() => onSelectDay(iso)}
-                  style={styles.dayCell}
+                  style={[styles.dayCell, isToday && styles.dayCellToday]}
                   accessibilityLabel={iso}
                 >
                   <Text
@@ -216,8 +216,13 @@ const styles = StyleSheet.create({
     minHeight: 64,
     borderRadius: 8,
     backgroundColor: Colors.surface2,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     padding: 4,
     gap: 1,
+  },
+  dayCellToday: {
+    borderColor: Colors.gold,
   },
   dayNumber: {
     fontFamily: 'Inter_500Medium',
