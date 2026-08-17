@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { Colors } from '../../../constants/colors';
+import { MEDICAL_CATEGORY } from '../../../constants/assetCategories';
 import { getCalendarMonthGrid, chunkIntoWeeks, toISODate, MONTH_NAMES, WEEKDAY_LABELS } from '../../../lib/calendarGrid';
 import { DayItem } from '../../../lib/calendarDayActivity';
 import { getCellPreview } from '../../../lib/calendarCellPreview';
@@ -38,11 +39,18 @@ const ORIGIN_TEXT_STYLES: Record<EventVisualOrigin, object> = {
   tentative_recurrence: { color: Colors.gold },
 };
 
-// CA4: un scheduled_future vencido no cambia de color base, solo se marca
-// con este borde de alerta.
+// CA4 (DOM-36): un scheduled_future vencido no cambia de color base, solo se
+// marca con este borde de alerta. DOM-40 CA4: un turno médico vencido usa un
+// tono de alerta distinto (rojo) al del resto de las categorías (naranja),
+// porque un tema de salud vencido no pesa igual que un mantenimiento vencido.
 const OVERDUE_STYLE = {
   borderWidth: 1.5,
   borderColor: '#c87a60',
+};
+
+const MEDICAL_OVERDUE_STYLE = {
+  borderWidth: 1.5,
+  borderColor: '#c0392b',
 };
 
 // DOM-33: en pantallas angostas entran menos líneas de texto por celda antes
@@ -123,6 +131,7 @@ export function MonthCalendarGrid({ getItemsForDate, onSelectDay }: MonthCalenda
 
                   {visibleItems.map((item, index) => {
                     const { origin, overdue } = getEventVisualOrigin(item, iso, todayISO);
+                    const overdueStyle = item.assetCategory === MEDICAL_CATEGORY ? MEDICAL_OVERDUE_STYLE : OVERDUE_STYLE;
                     return (
                       <Text
                         key={index}
@@ -130,7 +139,7 @@ export function MonthCalendarGrid({ getItemsForDate, onSelectDay }: MonthCalenda
                           styles.eventLine,
                           ORIGIN_LINE_STYLES[origin],
                           ORIGIN_TEXT_STYLES[origin],
-                          overdue && OVERDUE_STYLE,
+                          overdue && overdueStyle,
                           !inCurrentMonth && styles.eventLineOutside,
                         ]}
                         numberOfLines={1}

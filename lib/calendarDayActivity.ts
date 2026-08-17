@@ -7,6 +7,7 @@ export interface EventActivityRecord {
   date: string;
   assetId: string;
   assetName: string;
+  assetCategory: string;
   status: EventStatus;
   config: RecurrenceConfig | null;
 }
@@ -16,6 +17,7 @@ export interface DayEventItem {
   eventId: string;
   assetId: string;
   assetName: string;
+  assetCategory: string;
   status: EventStatus;
 }
 
@@ -23,6 +25,7 @@ export interface DayOccurrenceItem {
   type: 'next_occurrence';
   assetId: string;
   assetName: string;
+  assetCategory: string;
 }
 
 export type DayItem = DayEventItem | DayOccurrenceItem;
@@ -42,6 +45,7 @@ export function getDayItems(dateISO: string, records: EventActivityRecord[]): Da
         eventId: record.id,
         assetId: record.assetId,
         assetName: record.assetName,
+        assetCategory: record.assetCategory,
         status: record.status,
       });
     }
@@ -49,7 +53,12 @@ export function getDayItems(dateISO: string, records: EventActivityRecord[]): Da
     if (record.config) {
       const nextOccurrence = calculateNextOccurrence(record.date, record.config);
       if (nextOccurrence && toISODate(nextOccurrence) === dateISO) {
-        items.push({ type: 'next_occurrence', assetId: record.assetId, assetName: record.assetName });
+        items.push({
+          type: 'next_occurrence',
+          assetId: record.assetId,
+          assetName: record.assetName,
+          assetCategory: record.assetCategory,
+        });
       }
     }
   }
