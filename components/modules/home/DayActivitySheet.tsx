@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/colors';
 import { Button } from '../../ui/Button';
 import { DayItem } from '../../../lib/calendarDayActivity';
+import { MONTH_NAMES } from '../../../lib/calendarGrid';
 
 interface DayActivitySheetProps {
   visible: boolean;
@@ -13,12 +14,7 @@ interface DayActivitySheetProps {
   onAddEvent: () => void;
 }
 
-const MONTH_NAMES = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-];
-
-function formatDayTitle(iso: string): string {
+export function formatDayTitle(iso: string): string {
   const [year, month, day] = iso.split('-').map(Number);
   return `${day} de ${MONTH_NAMES[month - 1]} ${year}`;
 }
@@ -96,7 +92,6 @@ const styles = StyleSheet.create({
     fontFamily: 'CormorantGaramond_600SemiBold',
     fontSize: 20,
     color: Colors.silver,
-    textTransform: 'capitalize',
   },
   closeText: { fontSize: 16, color: Colors.silverDim },
   footer: {
