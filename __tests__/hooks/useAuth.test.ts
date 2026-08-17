@@ -10,7 +10,6 @@ jest.mock('../../lib/supabase', () => ({
       getSession: jest.fn(),
       onAuthStateChange: jest.fn(),
       signInWithPassword: jest.fn(),
-      signUp: jest.fn(),
       signOut: jest.fn(),
       signInWithOAuth: jest.fn(),
       exchangeCodeForSession: jest.fn(),
@@ -133,40 +132,6 @@ describe('useAuth', () => {
       let thrownError: unknown;
       await act(async () => {
         try { await result.current.signIn('a@b.com', 'wrong'); }
-        catch (e) { thrownError = e; }
-      });
-
-      expect(thrownError).toEqual(authError);
-    });
-  });
-
-  describe('signUp', () => {
-    it('calls signUp with email and password', async () => {
-      setupAuthMocks();
-      (supabase.auth.signUp as jest.Mock).mockResolvedValue({ error: null });
-
-      const { result } = renderHook(() => useAuth());
-
-      await act(async () => {
-        await result.current.signUp('new@b.com', 'pass123');
-      });
-
-      expect(supabase.auth.signUp).toHaveBeenCalledWith({
-        email: 'new@b.com',
-        password: 'pass123',
-      });
-    });
-
-    it('throws when signUp fails', async () => {
-      setupAuthMocks();
-      const authError = { message: 'Email already registered' };
-      (supabase.auth.signUp as jest.Mock).mockResolvedValue({ error: authError });
-
-      const { result } = renderHook(() => useAuth());
-
-      let thrownError: unknown;
-      await act(async () => {
-        try { await result.current.signUp('a@b.com', 'pass'); }
         catch (e) { thrownError = e; }
       });
 

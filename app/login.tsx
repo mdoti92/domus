@@ -13,21 +13,22 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 
-type Mode = 'login' | 'register';
+const GOOGLE_SIGN_IN_ERROR_MESSAGE =
+  'No se pudo completar el login con Google. Si tu cuenta no está autorizada para usar Domus, no vas a poder ingresar.';
 
 export default function LoginScreen() {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
-  const [mode, setMode] = useState<Mode>('login');
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const withLoadingAndError = async (action: () => Promise<void>): Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
+    if (!email.trim() || !password.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      await action();
+      await signIn(email.trim(), password);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String((err as { message?: string })?.message ?? 'Error inesperado');
       setError(message);
@@ -36,20 +37,16 @@ export default function LoginScreen() {
     }
   };
 
-  const handleSubmit = async (): Promise<void> => {
-    if (!email.trim() || !password.trim()) return;
-    await withLoadingAndError(() =>
-      mode === 'login' ? signIn(email.trim(), password) : signUp(email.trim(), password)
-    );
-  };
-
   const handleGoogleSignIn = async (): Promise<void> => {
-    await withLoadingAndError(signInWithGoogle);
-  };
-
-  const toggleMode = () => {
-    setMode((m) => (m === 'login' ? 'register' : 'login'));
+    setLoading(true);
     setError(null);
+    try {
+      await signInWithGoogle();
+    } catch {
+      setError(GOOGLE_SIGN_IN_ERROR_MESSAGE);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const canSubmit = email.trim().length > 0 && password.length >= 6 && !loading;
@@ -70,9 +67,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
-          </Text>
+          <Text style={styles.cardTitle}>Iniciar sesión</Text>
 
           {error && (
             <View style={styles.errorBox}>
@@ -96,18 +91,14 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             placeholder="Mínimo 6 caracteres"
             secureTextEntry
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            autoComplete="current-password"
           />
 
           {loading ? (
             <ActivityIndicator color={Colors.gold} style={styles.loader} />
           ) : (
             <>
-              <Button
-                label={mode === 'login' ? 'Entrar' : 'Registrarme'}
-                onPress={handleSubmit}
-                disabled={!canSubmit}
-              />
+              <Button label="Entrar" onPress={handleSubmit} disabled={!canSubmit} />
 
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
@@ -118,12 +109,6 @@ export default function LoginScreen() {
               <Button label="Continuar con Google" onPress={handleGoogleSignIn} variant="ghost" />
             </>
           )}
-
-          <Button
-            label={mode === 'login' ? '¿Primera vez? Crear cuenta' : 'Ya tengo cuenta'}
-            onPress={toggleMode}
-            variant="ghost"
-          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
