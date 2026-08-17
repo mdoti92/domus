@@ -28,11 +28,6 @@ export function useAuth() {
     if (error) throw error;
   };
 
-  const signUp = async (email: string, password: string): Promise<void> => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
-  };
-
   const signOut = async (): Promise<void> => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -60,5 +55,5 @@ export function useAuth() {
     if (exchangeError) throw exchangeError;
   };
 
-  return { session, loading, signIn, signUp, signOut, signInWithGoogle };
+  return { session, loading, signIn, signOut, signInWithGoogle };
 }
