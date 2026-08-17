@@ -4,29 +4,27 @@ import { Colors } from '../../../constants/colors';
 import { getCalendarMonthGrid, chunkIntoWeeks, toISODate, MONTH_NAMES, WEEKDAY_LABELS } from '../../../lib/calendarGrid';
 import { DayItem } from '../../../lib/calendarDayActivity';
 import { getCellPreview } from '../../../lib/calendarCellPreview';
-import { getEventVisualStatus, EventVisualStatus } from '../../../lib/eventVisualStatus';
+import { getEventVisualOrigin, EventVisualOrigin } from '../../../lib/eventVisualOrigin';
 
 interface MonthCalendarGridProps {
   getItemsForDate: (iso: string) => DayItem[];
   onSelectDay: (iso: string) => void;
 }
 
-// DOM-35: estilo por estado del evento — cada uno combina color y (para
-// tentative) un tratamiento no-solo-color (borde punteado), para que sean
-// distinguibles más allá del color solo (CA6).
-const STATUS_LINE_STYLES: Record<EventVisualStatus, object> = {
-  past: {
+// DOM-36: estilo por origen de creación del evento (no por estado, ver
+// lib/eventVisualOrigin.ts). "tentative_recurrence" usa un tratamiento
+// no-solo-color (borde punteado) para ser distinguible más allá del color
+// (CA5); lo mismo el borde de alerta de "overdue" sobre scheduled_future.
+const ORIGIN_LINE_STYLES: Record<EventVisualOrigin, object> = {
+  direct_log: {
     backgroundColor: Colors.surface2,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  scheduled: {
+  scheduled_future: {
     backgroundColor: Colors.gold,
   },
-  overdue: {
-    backgroundColor: '#c87a60',
-  },
-  tentative: {
+  tentative_recurrence: {
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderStyle: 'dashed',
@@ -34,11 +32,17 @@ const STATUS_LINE_STYLES: Record<EventVisualStatus, object> = {
   },
 };
 
-const STATUS_TEXT_STYLES: Record<EventVisualStatus, object> = {
-  past: { color: Colors.silverDim },
-  scheduled: { color: Colors.bg },
-  overdue: { color: Colors.white },
-  tentative: { color: Colors.gold },
+const ORIGIN_TEXT_STYLES: Record<EventVisualOrigin, object> = {
+  direct_log: { color: Colors.silverDim },
+  scheduled_future: { color: Colors.bg },
+  tentative_recurrence: { color: Colors.gold },
+};
+
+// CA4: un scheduled_future vencido no cambia de color base, solo se marca
+// con este borde de alerta.
+const OVERDUE_STYLE = {
+  borderWidth: 1.5,
+  borderColor: '#c87a60',
 };
 
 // DOM-33: en pantallas angostas entran menos líneas de texto por celda antes
@@ -118,14 +122,15 @@ export function MonthCalendarGrid({ getItemsForDate, onSelectDay }: MonthCalenda
                   </Text>
 
                   {visibleItems.map((item, index) => {
-                    const status = getEventVisualStatus(item, iso, todayISO);
+                    const { origin, overdue } = getEventVisualOrigin(item, iso, todayISO);
                     return (
                       <Text
                         key={index}
                         style={[
                           styles.eventLine,
-                          STATUS_LINE_STYLES[status],
-                          STATUS_TEXT_STYLES[status],
+                          ORIGIN_LINE_STYLES[origin],
+                          ORIGIN_TEXT_STYLES[origin],
+                          overdue && OVERDUE_STYLE,
                           !inCurrentMonth && styles.eventLineOutside,
                         ]}
                         numberOfLines={1}
