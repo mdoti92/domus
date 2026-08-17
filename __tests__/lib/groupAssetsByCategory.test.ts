@@ -7,6 +7,7 @@ const makeAsset = (overrides: Partial<Asset>): Asset => ({
   category: 'Mantenimiento',
   icon: null,
   parameter_definitions: [],
+  person_id: null,
   created_at: '2026-01-01',
   updated_at: '2026-01-01',
   ...overrides,

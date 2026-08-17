@@ -7,6 +7,7 @@ const makeAsset = (name: string): Asset => ({
   category: 'Mantenimiento',
   icon: null,
   parameter_definitions: [],
+  person_id: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 });

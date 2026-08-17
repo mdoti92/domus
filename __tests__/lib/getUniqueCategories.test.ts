@@ -8,6 +8,7 @@ function makeAsset(id: string, category: string): AssetWithLastEvent {
     category,
     icon: null,
     parameter_definitions: [],
+    person_id: null,
     created_at: '2026-06-25T00:00:00Z',
     updated_at: '2026-06-25T00:00:00Z',
     lastEvent: null,

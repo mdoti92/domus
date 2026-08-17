@@ -7,6 +7,7 @@ export interface CreateAssetInput {
   category: string;
   icon: string | null;
   parameter_definitions: ParameterDefinition[];
+  person_id: string | null;
 }
 
 export function useAssets() {
