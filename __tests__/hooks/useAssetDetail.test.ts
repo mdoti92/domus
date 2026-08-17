@@ -18,6 +18,7 @@ const makeAsset = (overrides: Partial<Asset> = {}): Asset => ({
     { name: 'ph', type: 'number' },
     { name: 'cloro', type: 'number', unit: 'ppm' },
   ],
+  person_id: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
   ...overrides,

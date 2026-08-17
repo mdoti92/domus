@@ -25,6 +25,7 @@ const baseInput: UpdateAssetInput = {
     { name: 'ph', type: 'number' },
     { name: 'cloro', type: 'number', unit: 'ppm' },
   ],
+  person_id: null,
 };
 
 describe('useUpdateAsset', () => {

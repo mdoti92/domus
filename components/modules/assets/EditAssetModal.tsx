@@ -17,6 +17,9 @@ import { Button } from '../../ui/Button';
 import { ASSET_CATEGORIES } from '../../../constants/assetCategories';
 import { ParameterType, Asset } from '../../../types';
 import { UpdateAssetInput } from '../../../hooks/useUpdateAsset';
+import { usePeople } from '../../../hooks/usePeople';
+
+const MEDICAL_CATEGORY = 'Médico';
 
 const ASSET_ICONS = [
   '🏠', '🚗', '🏊', '🔧', '🔩', '⚙️',
@@ -47,12 +50,14 @@ interface EditAssetModalProps {
 }
 
 export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: EditAssetModalProps) {
+  const { people } = usePeople();
   const [name, setName] = useState(asset.name);
   const [category, setCategory] = useState(asset.category);
   const [icon, setIcon] = useState<string | null>(asset.icon);
   const [parameters, setParameters] = useState<ParameterRow[]>(
     asset.parameter_definitions.map((p) => ({ name: p.name, type: p.type, unit: p.unit }))
   );
+  const [personId, setPersonId] = useState<string | null>(asset.person_id);
   const [submitting, setSubmitting] = useState(false);
   const [nameError, setNameError] = useState<string | undefined>();
 
@@ -61,6 +66,7 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
     setCategory(asset.category);
     setIcon(asset.icon);
     setParameters(asset.parameter_definitions.map((p) => ({ name: p.name, type: p.type, unit: p.unit })));
+    setPersonId(asset.person_id);
     setSubmitting(false);
     setNameError(undefined);
   };
@@ -126,6 +132,7 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
         parameter_definitions: parameters
           .filter((p) => p.name.trim())
           .map((p) => ({ name: p.name.trim(), type: p.type, ...(p.unit ? { unit: p.unit } : {}) })),
+        person_id: category === MEDICAL_CATEGORY ? personId : null,
       });
       onClose();
     } finally {
@@ -180,6 +187,31 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
                   ))}
                 </View>
               </View>
+
+              {category === MEDICAL_CATEGORY && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>Persona</Text>
+                  {people.length === 0 ? (
+                    <Text style={styles.emptyParams}>
+                      Sin personas creadas todavía. Podés agregar una desde Ajustes.
+                    </Text>
+                  ) : (
+                    <View style={styles.pillRow}>
+                      {people.map((person) => (
+                        <Pressable
+                          key={person.id}
+                          style={[styles.pill, personId === person.id && styles.pillActive]}
+                          onPress={() => setPersonId(personId === person.id ? null : person.id)}
+                        >
+                          <Text style={[styles.pillText, personId === person.id && styles.pillTextActive]}>
+                            {person.icon ? `${person.icon} ` : ''}{person.name}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
 
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>Icono</Text>

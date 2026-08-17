@@ -16,6 +16,9 @@ import { Button } from '../../ui/Button';
 import { ASSET_CATEGORIES } from '../../../constants/assetCategories';
 import { ParameterType } from '../../../types';
 import { CreateAssetInput } from '../../../hooks/useAssets';
+import { usePeople } from '../../../hooks/usePeople';
+
+const MEDICAL_CATEGORY = 'Médico';
 
 const ASSET_ICONS = [
   '🏠', '🚗', '🏊', '🔧', '🔩', '⚙️',
@@ -43,10 +46,12 @@ interface CreateAssetModalProps {
 }
 
 export function CreateAssetModal({ visible, onClose, onSubmit }: CreateAssetModalProps) {
+  const { people } = usePeople();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [icon, setIcon] = useState<string | null>(null);
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
+  const [personId, setPersonId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [nameError, setNameError] = useState<string | undefined>();
 
@@ -55,6 +60,7 @@ export function CreateAssetModal({ visible, onClose, onSubmit }: CreateAssetModa
     setCategory('');
     setIcon(null);
     setParameters([]);
+    setPersonId(null);
     setSubmitting(false);
     setNameError(undefined);
   };
@@ -101,6 +107,7 @@ export function CreateAssetModal({ visible, onClose, onSubmit }: CreateAssetModa
         parameter_definitions: parameters
           .filter((p) => p.name.trim())
           .map((p) => ({ name: p.name.trim(), type: p.type })),
+        person_id: category === MEDICAL_CATEGORY ? personId : null,
       });
       reset();
       onClose();
@@ -157,6 +164,31 @@ export function CreateAssetModal({ visible, onClose, onSubmit }: CreateAssetModa
                   ))}
                 </View>
               </View>
+
+              {category === MEDICAL_CATEGORY && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>Persona</Text>
+                  {people.length === 0 ? (
+                    <Text style={styles.emptyParams}>
+                      Sin personas creadas todavía. Podés agregar una desde Ajustes.
+                    </Text>
+                  ) : (
+                    <View style={styles.pillRow}>
+                      {people.map((person) => (
+                        <Pressable
+                          key={person.id}
+                          style={[styles.pill, personId === person.id && styles.pillActive]}
+                          onPress={() => setPersonId(personId === person.id ? null : person.id)}
+                        >
+                          <Text style={[styles.pillText, personId === person.id && styles.pillTextActive]}>
+                            {person.icon ? `${person.icon} ` : ''}{person.name}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
 
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>Icono</Text>

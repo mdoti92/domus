@@ -1,27 +1,25 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { ParameterDefinition } from '../types';
 
-export interface UpdateAssetInput {
+export interface UpdatePersonInput {
   name: string;
-  category: string;
+  relationship: string | null;
+  birth_date: string | null;
   icon: string | null;
-  parameter_definitions: ParameterDefinition[];
-  person_id: string | null;
 }
 
-export function useUpdateAsset() {
+export function useUpdatePerson() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
-  const updateAsset = useCallback(async (assetId: string, input: UpdateAssetInput): Promise<void> => {
+  const updatePerson = useCallback(async (personId: string, input: UpdatePersonInput): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
       const { error: updateError } = await supabase
-        .from('assets')
+        .from('people')
         .update(input)
-        .eq('id', assetId);
+        .eq('id', personId);
       if (updateError) throw updateError;
     } catch (err) {
       setError(err);
@@ -31,5 +29,5 @@ export function useUpdateAsset() {
     }
   }, []);
 
-  return { updateAsset, loading, error };
+  return { updatePerson, loading, error };
 }

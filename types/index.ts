@@ -14,6 +14,17 @@ export interface Asset {
   category: string;
   icon: string | null;
   parameter_definitions: ParameterDefinition[];
+  person_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Person {
+  id: string;
+  name: string;
+  relationship: string | null;
+  birth_date: string | null;
+  icon: string | null;
   created_at: string;
   updated_at: string;
 }
