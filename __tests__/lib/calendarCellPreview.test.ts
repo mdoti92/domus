@@ -6,6 +6,7 @@ const item = (n: number): DayItem => ({
   eventId: `ev-${n}`,
   assetId: `asset-${n}`,
   assetName: `Asset ${n}`,
+  assetCategory: 'Mantenimiento',
   status: 'pending',
 });
 

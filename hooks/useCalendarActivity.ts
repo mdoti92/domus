@@ -4,7 +4,7 @@ import { EventStatus } from '../types';
 import { RecurrenceConfig } from '../lib/eventNotificationSchedule';
 import { getDayItems, DayItem, EventActivityRecord } from '../lib/calendarDayActivity';
 
-const EVENTS_SELECT = `id, date, asset_id, status, assets(name), event_notification_configs(
+const EVENTS_SELECT = `id, date, asset_id, status, assets(name, category), event_notification_configs(
   enabled, recurrence_type, recurrence_date, recurrence_interval_value, recurrence_interval_unit
 )`;
 
@@ -13,7 +13,7 @@ interface RawEventActivityRow {
   date: string;
   asset_id: string;
   status: EventStatus;
-  assets: { name: string } | { name: string }[] | null;
+  assets: { name: string; category: string } | { name: string; category: string }[] | null;
   event_notification_configs: RecurrenceConfig | RecurrenceConfig[] | null;
 }
 
@@ -28,6 +28,7 @@ function normalizeRecord(row: RawEventActivityRow): EventActivityRecord {
     date: row.date,
     assetId: row.asset_id,
     assetName: asset?.name ?? '',
+    assetCategory: asset?.category ?? '',
     status: row.status,
     config: config ?? null,
   };

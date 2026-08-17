@@ -20,6 +20,7 @@ import { UpdateAssetInput } from '../../../hooks/useUpdateAsset';
 import { usePeople } from '../../../hooks/usePeople';
 
 const MEDICAL_CATEGORY = 'Médico';
+const MEDICAL_PARAMETER_SUGGESTIONS = ['Especialidad', 'Profesional', 'Lugar'];
 
 const ASSET_ICONS = [
   '🏠', '🚗', '🏊', '🔧', '🔩', '⚙️',
@@ -60,6 +61,7 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
   const [personId, setPersonId] = useState<string | null>(asset.person_id);
   const [submitting, setSubmitting] = useState(false);
   const [nameError, setNameError] = useState<string | undefined>();
+  const [personError, setPersonError] = useState<string | undefined>();
 
   const reset = () => {
     setName(asset.name);
@@ -69,6 +71,7 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
     setPersonId(asset.person_id);
     setSubmitting(false);
     setNameError(undefined);
+    setPersonError(undefined);
   };
 
   const handleClose = () => {
@@ -78,6 +81,11 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
 
   const addParameter = () => {
     setParameters((prev) => [...prev, { name: '', type: 'text' }]);
+  };
+
+  const addSuggestedParameter = (suggestion: string) => {
+    if (parameters.some((p) => p.name.trim().toLowerCase() === suggestion.toLowerCase())) return;
+    setParameters((prev) => [...prev, { name: suggestion, type: 'text' }]);
   };
 
   const updateParameterName = (index: number, value: string) => {
@@ -121,8 +129,13 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
       return;
     }
     if (!category) return;
+    if (category === MEDICAL_CATEGORY && !personId) {
+      setPersonError('Elegí a qué persona corresponde');
+      return;
+    }
 
     setNameError(undefined);
+    setPersonError(undefined);
     setSubmitting(true);
     try {
       await onSubmit({
@@ -140,7 +153,11 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
     }
   };
 
-  const canSubmit = name.trim().length > 0 && category.length > 0 && !submitting;
+  const canSubmit =
+    name.trim().length > 0 &&
+    category.length > 0 &&
+    !submitting &&
+    (category !== MEDICAL_CATEGORY || !!personId);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
@@ -201,7 +218,10 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
                         <Pressable
                           key={person.id}
                           style={[styles.pill, personId === person.id && styles.pillActive]}
-                          onPress={() => setPersonId(personId === person.id ? null : person.id)}
+                          onPress={() => {
+                            setPersonId(personId === person.id ? null : person.id);
+                            setPersonError(undefined);
+                          }}
                         >
                           <Text style={[styles.pillText, personId === person.id && styles.pillTextActive]}>
                             {person.icon ? `${person.icon} ` : ''}{person.name}
@@ -210,6 +230,7 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
                       ))}
                     </View>
                   )}
+                  {personError && <Text style={styles.fieldError}>{personError}</Text>}
                 </View>
               )}
 
@@ -235,6 +256,16 @@ export function EditAssetModal({ visible, asset, onClose, onSubmit, onDelete }: 
                     <Text style={styles.addParamText}>+ Agregar</Text>
                   </Pressable>
                 </View>
+
+                {category === MEDICAL_CATEGORY && (
+                  <View style={styles.pillRow}>
+                    {MEDICAL_PARAMETER_SUGGESTIONS.map((suggestion) => (
+                      <Pressable key={suggestion} style={styles.suggestionPill} onPress={() => addSuggestedParameter(suggestion)}>
+                        <Text style={styles.suggestionPillText}>+ {suggestion}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
 
                 {parameters.map((param, index) => (
                   <View key={index} style={styles.paramRow}>
@@ -396,6 +427,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.silverMuted,
     fontStyle: 'italic',
+  },
+  fieldError: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: '#c87a60',
+  },
+  suggestionPill: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: 'transparent',
+  },
+  suggestionPillText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: Colors.gold,
   },
   footer: {
     padding: 20,

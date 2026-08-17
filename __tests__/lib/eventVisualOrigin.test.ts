@@ -6,10 +6,16 @@ const eventItem = (status: 'pending' | 'done' | 'cancelled'): DayItem => ({
   eventId: 'ev-1',
   assetId: 'asset-1',
   assetName: 'Piscina',
+  assetCategory: 'Mantenimiento',
   status,
 });
 
-const occurrenceItem: DayItem = { type: 'next_occurrence', assetId: 'asset-1', assetName: 'Piscina' };
+const occurrenceItem: DayItem = {
+  type: 'next_occurrence',
+  assetId: 'asset-1',
+  assetName: 'Piscina',
+  assetCategory: 'Mantenimiento',
+};
 
 const TODAY = '2026-08-15';
 

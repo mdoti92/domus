@@ -19,7 +19,7 @@ function mockEventsQuery(result: { data: unknown; error: unknown }) {
 describe('useCalendarActivity', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('returns the day items for a date with a registered event, including its status (CA1)', async () => {
+  it('returns the day items for a date with a registered event, including its status and asset category (CA1)', async () => {
     mockEventsQuery({
       data: [
         {
@@ -27,7 +27,7 @@ describe('useCalendarActivity', () => {
           date: '2026-08-20T00:00:00+00:00',
           asset_id: 'asset-1',
           status: 'pending',
-          assets: { name: 'Piscina' },
+          assets: { name: 'Piscina', category: 'Mantenimiento' },
           event_notification_configs: null,
         },
       ],
@@ -38,11 +38,11 @@ describe('useCalendarActivity', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.getItemsForDate('2026-08-20')).toEqual([
-      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', status: 'pending' },
+      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', assetCategory: 'Mantenimiento', status: 'pending' },
     ]);
   });
 
-  it('returns the next occurrence of an enabled recurring event on its date (CA2)', async () => {
+  it('returns the next occurrence of an enabled recurring event on its date, with asset category (CA2)', async () => {
     mockEventsQuery({
       data: [
         {
@@ -50,7 +50,7 @@ describe('useCalendarActivity', () => {
           date: '2026-08-01T00:00:00+00:00',
           asset_id: 'asset-1',
           status: 'pending',
-          assets: { name: 'Piscina' },
+          assets: { name: 'Piscina', category: 'Médico' },
           event_notification_configs: {
             enabled: true,
             recurrence_type: 'date',
@@ -67,7 +67,7 @@ describe('useCalendarActivity', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.getItemsForDate('2026-09-15')).toEqual([
-      { type: 'next_occurrence', assetId: 'asset-1', assetName: 'Piscina' },
+      { type: 'next_occurrence', assetId: 'asset-1', assetName: 'Piscina', assetCategory: 'Médico' },
     ]);
   });
 
@@ -79,7 +79,7 @@ describe('useCalendarActivity', () => {
           date: '2026-08-01T00:00:00+00:00',
           asset_id: 'asset-1',
           status: 'done',
-          assets: [{ name: 'Piscina' }],
+          assets: [{ name: 'Piscina', category: 'Mantenimiento' }],
           event_notification_configs: [
             {
               enabled: true,
@@ -98,10 +98,10 @@ describe('useCalendarActivity', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.getItemsForDate('2026-08-01')).toEqual([
-      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', status: 'done' },
+      { type: 'event', eventId: 'ev-1', assetId: 'asset-1', assetName: 'Piscina', assetCategory: 'Mantenimiento', status: 'done' },
     ]);
     expect(result.current.getItemsForDate('2026-09-15')).toEqual([
-      { type: 'next_occurrence', assetId: 'asset-1', assetName: 'Piscina' },
+      { type: 'next_occurrence', assetId: 'asset-1', assetName: 'Piscina', assetCategory: 'Mantenimiento' },
     ]);
   });
 
@@ -113,7 +113,7 @@ describe('useCalendarActivity', () => {
           date: '2026-08-20T00:00:00+00:00',
           asset_id: 'asset-1',
           status: 'pending',
-          assets: { name: 'Piscina' },
+          assets: { name: 'Piscina', category: 'Mantenimiento' },
           event_notification_configs: null,
         },
       ],
